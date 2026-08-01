@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { LOGO_URL, OG_IMAGE, IGLESIA } from "@/app/data/iglesia";
+import { getSettings } from "@/src/utils/settings";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,45 +14,55 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "CCMieles — Centro Cristiano Mieles",
-    template: "%s | CCMieles",
-  },
-  description:
-    "Centro Cristiano Mieles — una iglesia para toda la familia. Fundada el 30 de agosto de 2007. Conoce nuestros ministerios, eventos, diario mural y envía tu petición de oración.",
-  metadataBase: new URL("https://ccmieles.cl"),
-  icons: {
-    icon: LOGO_URL,
-    shortcut: LOGO_URL,
-    apple: LOGO_URL,
-  },
-  openGraph: {
-    title: "CCMieles — Centro Cristiano Mieles",
-    description:
-      "Una iglesia para toda la familia. Conoce nuestra fe, ministerios y actividades.",
-    url: IGLESIA.url,
-    siteName: IGLESIA.nombre,
-    locale: "es_CL",
-    type: "website",
-    images: [
-      {
-        url: OG_IMAGE,
-        width: 1200,
-        height: 630,
-        alt: "Centro Cristiano Mieles",
-        type: "image/jpeg",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "CCMieles — Centro Cristiano Mieles",
-    description:
-      "Una iglesia para toda la familia. Conoce nuestra fe, ministerios y actividades.",
-    images: [OG_IMAGE],
-  },
-};
+// Metadatos globales dinámicos: se editan desde el panel (SEO → site_settings)
+// con respaldo automático a los valores por defecto.
+export async function generateMetadata(): Promise<Metadata> {
+  const s = await getSettings();
+  const keywords = s.seo.keywords
+    ? s.seo.keywords
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean)
+    : undefined;
+
+  return {
+    title: {
+      default: s.seo.title,
+      template: "%s | Centro Cristiano Mieles",
+    },
+    description: s.seo.description,
+    keywords,
+    metadataBase: new URL("https://ccmieles.cl"),
+    icons: {
+      icon: LOGO_URL,
+      shortcut: LOGO_URL,
+      apple: LOGO_URL,
+    },
+    openGraph: {
+      title: s.seo.title,
+      description: s.seo.description,
+      url: IGLESIA.url,
+      siteName: s.nombre,
+      locale: "es_CL",
+      type: "website",
+      images: [
+        {
+          url: OG_IMAGE,
+          width: 1200,
+          height: 630,
+          alt: s.nombre,
+          type: "image/jpeg",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: s.seo.title,
+      description: s.seo.description,
+      images: [OG_IMAGE],
+    },
+  };
+}
 
 export default function RootLayout({
   children,

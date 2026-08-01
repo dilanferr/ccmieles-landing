@@ -1,20 +1,32 @@
 import type { Metadata } from "next";
 import PageHeader from "@/app/components/PageHeader";
 import MosaicGallery from "@/app/components/MosaicGallery";
-import { HeartIcon, PrayingHands, CheckIcon } from "@/app/components/icons";
-import { IGLESIA, GALERIA_VISITAS } from "@/app/data/iglesia";
+import PersonCard from "@/app/components/PersonCard";
+import MinisteriosNav from "@/app/components/MinisteriosNav";
+import CtaFinal from "@/app/components/ministry/CtaFinal";
+import SectionHeader from "@/app/components/SectionHeader";
+import { getSettings } from "@/src/utils/settings";
+import { HeartIcon, PrayingHands, UsersIcon, type Icon } from "@/app/components/icons";
+import { IGLESIA, GALERIA_VISITAS, NAV_GRUPOS, cloudinaryUrl } from "@/app/data/iglesia";
 
 export const metadata: Metadata = {
   title: "Visita a Hogares",
   description:
     "Departamento de visitación a los hogares de enfermos y miembros de la comunidad del Centro Cristiano Mieles.",
+  alternates: { canonical: "/departamento-visitas" },
 };
 
 // Tarjetas con foto de fondo (degradado de respaldo si la imagen no carga).
-const LABORES = [
+const LABORES: {
+  Icon: Icon;
+  titulo: string;
+  texto: string;
+  imagen: string;
+  gradiente: string;
+}[] = [
   {
-    emoji: "🙏",
-    titulo: "Oración en los hogares",
+    Icon: PrayingHands,
+    titulo: "Oración en los Hogares",
     texto:
       "Llevamos la presencia de Dios a cada casa, intercediendo por las familias y sus necesidades.",
     imagen:
@@ -22,8 +34,8 @@ const LABORES = [
     gradiente: "from-blue-800 to-sky-600",
   },
   {
-    emoji: "❤️",
-    titulo: "Acompañamiento a enfermos",
+    Icon: HeartIcon,
+    titulo: "Acompañamiento a Enfermos",
     texto:
       "Visitamos a los hermanos enfermos para consolarlos, animarlos y orar por su sanidad.",
     imagen:
@@ -31,8 +43,8 @@ const LABORES = [
     gradiente: "from-blue-900 to-blue-600",
   },
   {
-    emoji: "🤝",
-    titulo: "Apoyo a la comunidad",
+    Icon: UsersIcon,
+    titulo: "Apoyo a la Comunidad",
     texto:
       "Atendemos las necesidades espirituales y sociales de los miembros y vecinos del sector.",
     imagen:
@@ -42,26 +54,62 @@ const LABORES = [
 ];
 
 // Encargadas del Departamento de Visita a Hogares.
+// imageUrl: pega la URL de la foto en Cloudinary (déjalo "" para usar iniciales).
 const ENCARGADOS = [
-  { nombre: "Hermana Erika Pérez", cargo: "Encargada" },
-  { nombre: "Hermana Karina Obando", cargo: "Encargada" },
+  { 
+    nombre: "Hermana Erika Pérez",
+    cargo: "Encargada", 
+    foto: cloudinaryUrl("Hermana-Erika-Perez-2")},
 ];
 
-export default function VisitasPage() {
+export const revalidate = 60;
+
+export default async function VisitasPage() {
+  const s = await getSettings();
   return (
     <>
       <PageHeader
         eyebrow={IGLESIA.ministerio}
         titulo="Departamento de Visita a Hogares"
         descripcion="Grupo de Trabajo dedicado a llevar el amor de Cristo a los hogares de los enfermos y de toda la comunidad."
+        primaryCta={{
+          label: "Cómo llegar",
+          href: s.mapsUrl,
+          external: true,
+        }}
+        aside={
+          <div>
+            <div className="flex items-center gap-4">
+              <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/20">
+                <HeartIcon className="h-7 w-7" />
+              </span>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-200">
+                  Visitación
+                </p>
+                <p className="text-lg font-bold">El amor de Cristo, casa por casa</p>
+              </div>
+            </div>
+            <p className="mt-4 text-sm leading-relaxed text-sky-50/90">
+              Llevamos oración, compañía y apoyo espiritual a los enfermos y a
+              toda la comunidad.
+            </p>
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/15">
+              <PrayingHands className="h-3.5 w-3.5" />
+              {ENCARGADOS.length} encargadas del ministerio
+            </div>
+          </div>
+        }
       />
 
+      <MinisteriosNav items={NAV_GRUPOS} activeHref="/departamento-visitas" />
+
       {/* ============ LA LABOR ============ */}
-      <section className="bg-white py-20 sm:py-24">
+      <section className="bg-background py-20 sm:py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Una labor social y espiritual
+              Una Labor Social y Espiritual
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-slate-600">
               Creemos que la iglesia no vive solo dentro de cuatro paredes. Por
@@ -90,8 +138,8 @@ export default function VisitasPage() {
 
                 {/* Contenido */}
                 <div className="relative p-7 text-white">
-                  <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white/15 text-2xl ring-1 ring-white/25 backdrop-blur-sm">
-                    {l.emoji}
+                  <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white/15 text-white ring-1 ring-white/25 backdrop-blur-sm">
+                    <l.Icon className="h-7 w-7" />
                   </span>
                   <h3 className="mt-4 text-xl font-bold drop-shadow">
                     {l.titulo}
@@ -123,58 +171,50 @@ export default function VisitasPage() {
           </div>
 
           {/* Encargadas */}
-          <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm sm:p-10">
-            <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-xl bg-blue-50 text-blue-700">
-                <HeartIcon className="h-6 w-6" />
-              </span>
-              <h2 className="text-xl font-bold text-slate-900">
-                Encargadas del Ministerio
-              </h2>
-            </div>
-            <ul className="mt-6 grid gap-4 sm:grid-cols-2">
-              {ENCARGADOS.map((p) => (
-                <li
-                  key={p.nombre}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4"
-                >
-                  <CheckIcon className="h-5 w-5 shrink-0 text-sky-500" />
-                  <div>
-                    <p className="text-sm font-bold text-slate-900">
-                      {p.nombre}
-                    </p>
-                    <p className="text-xs font-medium text-blue-700">
-                      {p.cargo}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+          <div className="mt-12 text-center">
+            <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-blue-700">
+              <HeartIcon className="h-4 w-4" />
+              Encargadas del Departamento
+            </span>
+          </div>
+          <div className="mx-auto mt-4 grid max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2">
+            {ENCARGADOS.map((p) => (
+              <PersonCard
+                key={p.nombre}
+                nombre={p.nombre}
+                cargo={p.cargo}
+                imageUrl={p.foto}
+              />
+            ))}
           </div>
         </div>
       </section>
 
       {/* ============ GALERÍA: AMOR EN CADA HOGAR ============ */}
-      <section className="bg-white py-20 sm:py-24">
+      <section className="bg-background py-20 sm:py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700">
-              Nuestra labor en imágenes
-            </span>
-            <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Amor en cada hogar
-            </h2>
-            <p className="mt-4 text-lg leading-relaxed text-slate-600">
-              Cada visita es una huella del amor de Cristo. Estos son algunos
-              momentos de nuestra labor en los hogares de la comunidad.
-            </p>
-          </div>
+          <SectionHeader
+            eyebrow="Nuestra labor en imágenes"
+            titulo="Amor en cada Hogar"
+            subtitulo="Cada visita es una huella del amor de Cristo. Estos son algunos momentos de nuestra labor en los hogares de la comunidad."
+          />
 
           <div className="mt-14">
             <MosaicGallery fotos={GALERIA_VISITAS} />
           </div>
         </div>
       </section>
+
+      <CtaFinal
+        titulo="¿Conoces a alguien que necesite una visita?"
+        texto="Llevamos oración, compañía y apoyo espiritual a los hogares. Cuéntanos y oraremos por esa familia."
+        primaryCta={{
+          label: "Cómo llegar",
+          href: s.mapsUrl,
+          external: true,
+        }}
+        secondaryCta={{ label: "Petición de oración", href: "/oracion-peticion" }}
+      />
     </>
   );
 }

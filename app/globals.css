@@ -1,12 +1,15 @@
 @import "tailwindcss";
 
+/* Modo oscuro por CLASE (.dark), usado solo en el panel de administración. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ===========================================================
    Centro Cristiano Mieles — Tema base
    Paleta: Celeste (sky) + Blanco / Slate
    =========================================================== */
 
 @theme {
-  --color-background: #ffffff;
+  --color-background: #f5f8ff; 
   --color-foreground: #0f172a; /* slate-900 */
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
@@ -25,6 +28,9 @@
   /* Animaciones */
   --animate-fade-up: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-fade-in: fade-in 0.6s ease-out both;
+  --animate-float-slow: float-slow 9s ease-in-out infinite;
+  --animate-float-slower: float-slower 13s ease-in-out infinite;
+  --animate-shimmer: shimmer 6s ease-in-out infinite;
 }
 
 @keyframes fade-up {
@@ -47,6 +53,46 @@
   }
 }
 
+/* Partículas/brillo de fondo (CTA final). Movimiento suave y sutil. */
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(18px, -22px);
+  }
+}
+
+@keyframes float-slower {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-24px, 16px);
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+/* Accesibilidad: sin movimiento si el usuario lo pide. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-slow,
+  .animate-float-slower,
+  .animate-shimmer {
+    animation: none !important;
+  }
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -66,4 +112,54 @@ section[id] {
 /* Scrollbar sutil en celeste */
 * {
   scrollbar-color: var(--color-brand-300) transparent;
+}
+
+/* Primitivo reutilizable: etiqueta superior de sección ("eyebrow"). */
+@utility eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--color-blue-700);
+}
+
+/* ===========================================================
+   LEGIBILIDAD EN CELULAR
+   Sube el tamaño base de los textos SOLO en móvil (< 640px).
+   El escritorio queda intacto porque las variantes sm:/lg:
+   aplican desde 640px en adelante y no entran aquí.
+   Ajusta los valores de este bloque para calibrar el tamaño.
+   =========================================================== */
+@media (max-width: 639px) {
+  .text-xs {
+    font-size: 1rem; /* 16px (antes 12px) */
+    line-height: 1.45rem;
+  }
+  .text-sm {
+    font-size: 1.0625rem; /* 17px (antes 14px) */
+    line-height: 1.6rem;
+  }
+  .text-base {
+    font-size: 1.1875rem; /* 19px (antes 16px) */
+    line-height: 1.75rem;
+  }
+  .text-lg {
+    font-size: 1.3125rem; /* 21px (antes 18px) */
+    line-height: 1.9rem;
+  }
+  .text-xl {
+    font-size: 1.5rem; /* 24px (antes 20px) */
+    line-height: 2rem;
+  }
+  .text-2xl {
+    font-size: 1.75rem; /* 28px (antes 24px) */
+    line-height: 2.2rem;
+  }
+  .text-3xl {
+    font-size: 2.05rem; /* ~33px (antes 30px) — títulos de sección */
+    line-height: 2.4rem;
+  }
 }

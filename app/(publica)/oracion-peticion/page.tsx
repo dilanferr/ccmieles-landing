@@ -1,21 +1,19 @@
 import type { Metadata } from "next";
 import PageHeader from "@/app/components/PageHeader";
 import PrayerForm from "@/app/components/PrayerForm";
+import PersonCard from "@/app/components/PersonCard";
+import MinisteriosNav from "@/app/components/MinisteriosNav";
+import CtaFinal from "@/app/components/ministry/CtaFinal";
+import SectionHeader from "@/app/components/SectionHeader";
+import { getSettings } from "@/src/utils/settings";
 import { PrayingHands, LockIcon, HeartIcon } from "@/app/components/icons";
-import { IGLESIA } from "@/app/data/iglesia";
-
-const inicialesEncargada = IGLESIA.encargadaOracion
-  .replace(/^(Hermana|Hermano|Pastora|Pastor|Diaconisa)\s+/i, "")
-  .split(" ")
-  .slice(0, 2)
-  .map((w) => w[0])
-  .join("")
-  .toUpperCase();
+import { IGLESIA, NAV_GRUPOS } from "@/app/data/iglesia";
 
 export const metadata: Metadata = {
   title: "Oración y Petición",
   description:
     "Envía tu petición de oración al Centro Cristiano Mieles. El Cuerpo Ministerial intercede por cada necesidad de forma 100% confidencial.",
+  alternates: { canonical: "/oracion-peticion" },
 };
 
 const COMO_FUNCIONA = [
@@ -39,33 +37,101 @@ const COMO_FUNCIONA = [
   },
 ];
 
-export default function OracionPeticionPage() {
+// Promesas bíblicas sobre la oración (Reina-Valera 1960).
+const VERSICULOS = [
+  {
+    cita: "Marcos 11:24",
+    texto:
+      "Por tanto, os digo que todo lo que pidiereis orando, creed que lo recibiréis, y os vendrá.",
+  },
+  {
+    cita: "San Juan 15:7",
+    texto:
+      "Si permanecéis en mí, y mis palabras permanecen en vosotros, pedid todo lo que queréis, y os será hecho.",
+  },
+  {
+    cita: "San Mateo 21:22",
+    texto: "Y todo lo que pidiereis en oración, creyendo, lo recibiréis.",
+  },
+  {
+    cita: "1 Juan 5:14-15",
+    texto:
+      "Y esta es la confianza que tenemos en él, que si pedimos alguna cosa conforme a su voluntad, él nos oye.",
+  },
+];
+
+export const revalidate = 60;
+
+export default async function OracionPeticionPage() {
+  const s = await getSettings();
   return (
     <>
       <PageHeader
         eyebrow="Estamos contigo en oración"
         titulo="Oración y Petición"
         descripcion="Un espacio consagrado a la intercesión. Comparte tu necesidad y nuestro Cuerpo Ministerial clamará a Dios por ti."
+        primaryCta={{ label: "Enviar petición", href: "#formulario" }}
+        secondaryCta={{
+          label: "Cómo llegar",
+          href: s.mapsUrl,
+          external: true,
+        }}
+        aside={
+          <div>
+            <div className="flex items-center gap-4">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/20">
+                <PrayingHands className="h-6 w-6" />
+              </span>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-200">
+                  Intercesión
+                </p>
+                <p className="text-lg font-bold">Estamos contigo</p>
+              </div>
+            </div>
+            <p className="mt-4 text-sm leading-relaxed text-sky-50/90">
+              Recibimos cada petición con amor y respeto. No estás solo/a:
+              oramos contigo y por ti con fe.
+            </p>
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/15">
+              <LockIcon className="h-3.5 w-3.5" />
+              100% confidencial
+            </div>
+          </div>
+        }
       />
 
-      {/* ============ PROMESA BÍBLICA ============ */}
-      <section className="bg-white py-16 sm:py-20">
-        <div className="mx-auto max-w-4xl px-6 lg:px-8">
-          <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-blue-900 via-blue-800 to-sky-600 p-10 text-center text-white shadow-2xl sm:p-14">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-sky-400/20 blur-3xl"
-            />
-            <div className="relative">
-              <PrayingHands className="mx-auto h-12 w-12 text-sky-200" />
-              <blockquote className="mx-auto mt-6 max-w-2xl text-2xl font-semibold leading-relaxed sm:text-3xl">
-                «Porque donde están dos o tres congregados en mi nombre, allí
-                estoy yo en medio de ellos.»
-              </blockquote>
-              <p className="mt-5 text-sm font-bold uppercase tracking-[0.2em] text-sky-200">
-                Mateo 18:20
-              </p>
-            </div>
+      <MinisteriosNav items={NAV_GRUPOS} activeHref="/oracion-peticion" />
+
+      {/* ============ PROMESAS BÍBLICAS (4 versículos) ============ */}
+      <section className="bg-background py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <SectionHeader
+            eyebrow="Promesas de Su Palabra"
+            icon={PrayingHands}
+            titulo="Él escucha y responde"
+          />
+
+          <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {VERSICULOS.map((v) => (
+              <article
+                key={v.cita}
+                className="flex flex-col rounded-3xl bg-linear-to-br from-blue-900 to-blue-700 p-6 text-white shadow-lg shadow-blue-900/10 transition-all hover:-translate-y-1.5 hover:shadow-xl sm:p-7"
+              >
+                <span
+                  aria-hidden
+                  className="font-serif text-5xl leading-none text-sky-300/70"
+                >
+                  “
+                </span>
+                <blockquote className="-mt-3 flex-1 text-sm italic leading-relaxed text-sky-50/95">
+                  {v.texto}
+                </blockquote>
+                <p className="mt-5 text-xs font-bold uppercase tracking-[0.15em] text-sky-200">
+                  {v.cita}
+                </p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -108,18 +174,11 @@ export default function OracionPeticionPage() {
       {/* ============ CÓMO FUNCIONA (respaldo de confianza) ============ */}
       <section className="bg-slate-50 py-20 sm:py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700">
-              Cómo funciona
-            </span>
-            <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Un ministerio de intercesión
-            </h2>
-            <p className="mt-4 text-lg leading-relaxed text-slate-600">
-              Cada petición que recibimos es tomada con amor y respeto. Así
-              cuidamos y presentamos tu necesidad delante de Dios.
-            </p>
-          </div>
+          <SectionHeader
+            eyebrow="Cómo funciona"
+            titulo="Un Ministerio de intercesión"
+            subtitulo="Cada petición que recibimos es tomada con amor y respeto. Así cuidamos y presentamos tu necesidad delante de Dios."
+          />
 
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             {COMO_FUNCIONA.map(({ Icon, titulo, texto }) => (
@@ -141,30 +200,27 @@ export default function OracionPeticionPage() {
           </div>
 
           {/* Encargada del ministerio de intercesión (cierra la confianza) */}
-          <div className="mx-auto mt-8 max-w-4xl overflow-hidden rounded-3xl border border-blue-100 bg-linear-to-br from-blue-50 to-white p-8 shadow-sm sm:p-10">
-            <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
-              <div className="grid h-24 w-24 shrink-0 place-items-center rounded-full bg-linear-to-br from-blue-700 to-sky-500 text-2xl font-bold text-white shadow-lg shadow-blue-600/25 ring-4 ring-white">
-                {inicialesEncargada}
-              </div>
-              <div>
-                <span className="inline-flex items-center gap-2 rounded-full bg-blue-700/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-700">
-                  <HeartIcon className="h-3.5 w-3.5" />
-                  Encargada de Intercesión
-                </span>
-                <h3 className="mt-3 text-2xl font-bold text-slate-900">
-                  {IGLESIA.encargadaOracion}
-                </h3>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-                  Es la servidora encargada de recibir, clasificar y coordinar
-                  cada petición junto al Cuerpo Ministerial, asegurando la
-                  absoluta confidencialidad y el compromiso de clamar a Dios por
-                  cada motivo: Sanidad, Liberación y Consolación.
-                </p>
-              </div>
-            </div>
+          <div className="mx-auto mt-10 max-w-sm">
+            <PersonCard
+              nombre={IGLESIA.encargadaOracion.nombre}
+              cargo="Encargada de Petición de Oración"
+              imageUrl={IGLESIA.encargadaOracion.foto}
+              descripcion="Recibe, clasifica y coordina cada petición junto al Cuerpo Ministerial, asegurando la absoluta confidencialidad y el compromiso de clamar a Dios por cada motivo: Sanidad, Liberación y Consolación."
+            />
           </div>
         </div>
       </section>
+
+      <CtaFinal
+        titulo="No estás solo/a"
+        texto="Estamos contigo en oración. Ven y sé parte de nuestra familia de fe en el Centro Cristiano Mieles."
+        primaryCta={{
+          label: "Cómo llegar",
+          href: s.mapsUrl,
+          external: true,
+        }}
+        secondaryCta={{ label: "Conoce la iglesia", href: "/nosotros" }}
+      />
     </>
   );
 }

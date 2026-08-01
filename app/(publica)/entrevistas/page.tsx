@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Entrevistas",
   description:
     "Entrevistas a líderes y hermanos del Centro Cristiano Mieles: conversaciones de fe, visión y servicio.",
+  alternates: { canonical: "/entrevistas" },
 };
 
 export default function EntrevistasPage() {

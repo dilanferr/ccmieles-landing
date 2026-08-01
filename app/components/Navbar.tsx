@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Brand from "./Brand";
 import { MenuIcon, CloseIcon, ChevronDown, PrayingHands } from "./icons";
-import { NAV_SIMPLE, NAV_MAS, GRUPOS_DROPDOWN } from "@/app/data/iglesia";
+import { FlowButton } from "@/app/components/ui/flow-button";
+import { NAV_SIMPLE, NAV_MAS, NAV_GRUPOS } from "@/app/data/iglesia";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false); // menú móvil
   const [grupos, setGrupos] = useState(false); // dropdown grupos (escritorio)
   const [mas, setMas] = useState(false); // dropdown "Más" (escritorio)
@@ -104,13 +106,13 @@ export default function Navbar() {
               }`}
             >
               <ul className="overflow-hidden rounded-2xl border border-slate-100 bg-white p-2 shadow-xl shadow-slate-900/5">
-                {GRUPOS_DROPDOWN.map((g) => (
-                  <li key={g.slug}>
+                {NAV_GRUPOS.map((g) => (
+                  <li key={g.href}>
                     <Link
-                      href={`/grupos/${g.slug}`}
+                      href={g.href}
                       className="block rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700"
                     >
-                      {g.titulo}
+                      {g.label}
                     </Link>
                   </li>
                 ))}
@@ -171,13 +173,12 @@ export default function Navbar() {
 
         {/* ---------- Acciones ---------- */}
         <div className="flex shrink-0 items-center gap-2">
-          <Link
-            href="/oracion-peticion"
-            className="hidden items-center gap-2 whitespace-nowrap rounded-full bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition-all hover:-translate-y-0.5 hover:bg-blue-800 sm:inline-flex"
-          >
-            <PrayingHands className="h-4 w-4" />
-            Petición de Oración
-          </Link>
+          <div className="hidden sm:block">
+            <FlowButton
+              text="Petición de Oración"
+              onClick={() => router.push("/oracion-peticion")}
+            />
+          </div>
 
           <button
             type="button"
@@ -232,13 +233,13 @@ export default function Navbar() {
               }`}
             >
               <ul className="space-y-1 py-1 pl-3">
-                {GRUPOS_DROPDOWN.map((g) => (
-                  <li key={g.slug}>
+                {NAV_GRUPOS.map((g) => (
+                  <li key={g.href}>
                     <Link
-                      href={`/grupos/${g.slug}`}
+                      href={g.href}
                       className="block rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
                     >
-                      {g.titulo}
+                      {g.label}
                     </Link>
                   </li>
                 ))}

@@ -21,13 +21,6 @@ const MARK_AFICHE = "\n\n[Afiche]: ";
 
 /* ---------- Testimonios: bendecidos dentro de "contenido" ---------- */
 
-export function encodeTestimonio(descripcion: string, bendecidos: string[]): string {
-  const limpia = descripcion.trim();
-  return bendecidos.length
-    ? `${limpia}${MARK_BENDECIDOS}${bendecidos.join(", ")}`
-    : limpia;
-}
-
 export function decodeTestimonio(contenido: string): {
   descripcion: string;
   bendecidos: string[];
@@ -45,11 +38,6 @@ export function decodeTestimonio(contenido: string): {
 }
 
 /* ---------- Eventos: afiche dentro de "descripcion" ---------- */
-
-export function encodeEventoDescripcion(descripcion: string, afiche?: string | null): string {
-  const limpia = descripcion.trim();
-  return afiche ? `${limpia}${MARK_AFICHE}${afiche}` : limpia;
-}
 
 export function decodeEventoDescripcion(raw: string): {
   descripcion: string;

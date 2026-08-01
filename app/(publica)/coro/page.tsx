@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: "Coro y Alabanza",
   description:
     "Ensayos, reglamento interno y cancionero del Ministerio de Coro y Juventud del Centro Cristiano Mieles.",
+  alternates: { canonical: "/coro" },
 };
 
 export default function CoroPage() {
@@ -20,7 +21,7 @@ export default function CoroPage() {
       />
 
       {/* ============ ENSAYOS Y REUNIONES ============ */}
-      <section className="bg-white py-20 sm:py-24">
+      <section className="bg-background py-20 sm:py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid gap-6 md:grid-cols-2">
             <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -36,7 +37,7 @@ export default function CoroPage() {
                 consagración delante de Dios.
               </p>
               <p className="mt-4 inline-flex rounded-xl bg-sky-50 px-4 py-2 text-sm font-semibold text-blue-700">
-                Viernes · 20:00 hrs
+                Viernes · 19:00 hrs
               </p>
             </div>
 

@@ -39,7 +39,7 @@ export default function Brand({
         </span>
       )}
 
-      <span className="flex flex-col leading-tight">
+      <span className="flex flex-col items-center text-center leading-tight">
         <span
           className={`whitespace-nowrap text-base font-bold tracking-tight ${main}`}
         >

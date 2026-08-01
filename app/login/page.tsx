@@ -30,7 +30,7 @@ export default function LoginPage() {
         password,
       });
       if (error) throw error;
-      router.push("/dashboard");
+      router.push("/admin");
       router.refresh();
     } catch (err) {
       setError(

@@ -1,70 +1,22 @@
 import type { Metadata } from "next";
 import PageHeader from "@/app/components/PageHeader";
+import LiteYouTube from "@/app/components/LiteYouTube";
 import { PlayIcon } from "@/app/components/icons";
-import { TESTIMONIOS } from "@/app/data/iglesia";
-import { decodeTestimonio } from "@/app/data/contenido";
-import { createPublicClient } from "@/src/utils/supabase-public";
+import { getTestimonios } from "@/src/utils/publico";
 
 export const metadata: Metadata = {
-  title: "Testimonios",
+  title: {
+    absolute: "Testimonios de Fe y Bendición | Centro Cristiano Mieles",
+  },
   description:
-    "Testimonios de fe en video: historias reales del poder de Dios en el Centro Cristiano Mieles.",
+    "Testimonios de fe y bendición en video: historias reales del poder de Dios transformando vidas en el Centro Cristiano Mieles, Quilicura.",
+  alternates: { canonical: "/testimonios" },
 };
 
 export const revalidate = 30;
 
-type TestimonioView = {
-  id: string;
-  titulo: string;
-  youtubeId: string;
-  descripcion: string;
-  bendecidos: string[];
-};
-
-type Noticia = {
-  id: string | number;
-  titulo: string | null;
-  contenido: string | null;
-  imagen_url: string | null;
-  tipo: string | null;
-};
-
-async function cargarTestimonios(): Promise<TestimonioView[]> {
-  const fallback: TestimonioView[] = TESTIMONIOS.map((t) => ({
-    id: t.id,
-    titulo: t.titulo,
-    youtubeId: t.youtubeId,
-    descripcion: t.descripcion,
-    bendecidos: t.bendecidos,
-  }));
-
-  try {
-    const supabase = createPublicClient();
-    const { data, error } = await supabase
-      .from("noticias")
-      .select("id, titulo, contenido, imagen_url, tipo")
-      .eq("tipo", "testimonio")
-      .order("created_at", { ascending: false });
-
-    if (error || !data || data.length === 0) return fallback;
-
-    return (data as Noticia[]).map((r) => {
-      const { descripcion, bendecidos } = decodeTestimonio(r.contenido ?? "");
-      return {
-        id: String(r.id),
-        titulo: r.titulo ?? "—",
-        youtubeId: r.imagen_url ?? "",
-        descripcion,
-        bendecidos,
-      };
-    });
-  } catch {
-    return fallback;
-  }
-}
-
 export default async function TestimoniosPage() {
-  const testimonios = await cargarTestimonios();
+  const testimonios = await getTestimonios();
 
   return (
     <>
@@ -82,16 +34,9 @@ export default async function TestimoniosPage() {
                 key={t.id}
                 className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:grid lg:grid-cols-2"
               >
-                {/* Reproductor de video */}
+                {/* Reproductor de video (carga al hacer clic + registra play) */}
                 <div className="relative aspect-video bg-blue-950">
-                  <iframe
-                    className="absolute inset-0 h-full w-full"
-                    src={`https://www.youtube-nocookie.com/embed/${t.youtubeId}`}
-                    title={t.titulo}
-                    loading="lazy"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
+                  <LiteYouTube id={t.youtubeId} title={t.titulo} />
                 </div>
 
                 {/* Descripción */}
