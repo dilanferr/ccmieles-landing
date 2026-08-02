@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cerrarSesion } from "@/app/(admin)/actions";
 import {
@@ -18,11 +18,12 @@ import {
   UsersIcon,
   IdCardIcon,
   WalletIcon,
+  LockIcon,
   ChevronLeft,
   CloseIcon,
   type Icon,
 } from "@/app/components/icons";
-import type { TabId } from "./types";
+import type { TabId, Rol } from "./types";
 import DashboardModule from "./DashboardModule";
 import NoticiasModule from "./NoticiasModule";
 import ClasificadosModule from "./ClasificadosModule";
@@ -36,8 +37,22 @@ import MultimediaModule from "./MultimediaModule";
 import AnaliticasModule from "./AnaliticasModule";
 import SeoModule from "./SeoModule";
 import ImpactoModule from "./ImpactoModule";
+import UsuariosModule from "./UsuariosModule";
 
 type NavItem = { id: TabId; label: string; Icon: Icon; soon?: boolean };
+
+/* ============ RBAC — control de acceso por rol ============
+   admin/pastor ven TODO. El resto solo las pestañas listadas aquí. */
+const ROLES_TOTALES: Rol[] = ["admin", "pastor"];
+const ACCESO_EXTRA: Partial<Record<TabId, Rol[]>> = {
+  dashboard: ["tesorero", "lider", "secretaria"],
+  servicios: ["lider", "secretaria"],
+  miembros: ["secretaria"],
+  finanzas: ["tesorero"],
+};
+function puedeVer(rol: Rol, id: TabId): boolean {
+  return ROLES_TOTALES.includes(rol) || (ACCESO_EXTRA[id]?.includes(rol) ?? false);
+}
 
 const NAV: { group: string; items: NavItem[] }[] = [
   {
@@ -79,12 +94,40 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { id: "config", label: "Configuración", Icon: CogIcon },
     ],
   },
+  {
+    group: "Administración",
+    items: [{ id: "usuarios", label: "Usuarios y Roles", Icon: LockIcon }],
+  },
 ];
 
 const TODOS = NAV.flatMap((g) => g.items);
 
-export function AdminShell({ email }: { email: string }) {
-  const [tab, setTab] = useState<TabId>("impacto");
+export function AdminShell({
+  email,
+  rol,
+  userId,
+}: {
+  email: string;
+  rol: Rol;
+  userId: string;
+}) {
+  // Menú y buscador filtrados por rol (defensa en UI; la RLS es la real).
+  const navVisible = useMemo(
+    () =>
+      NAV.map((g) => ({
+        ...g,
+        items: g.items.filter((it) => puedeVer(rol, it.id)),
+      })).filter((g) => g.items.length > 0),
+    [rol],
+  );
+  const todosVisibles = useMemo(
+    () => navVisible.flatMap((g) => g.items),
+    [navVisible],
+  );
+
+  const [tab, setTab] = useState<TabId>(
+    () => TODOS.find((t) => puedeVer(rol, t.id))?.id ?? "dashboard",
+  );
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(false);
   const [palette, setPalette] = useState(false);
@@ -120,7 +163,7 @@ export function AdminShell({ email }: { email: string }) {
 
   function ir(id: TabId) {
     const item = TODOS.find((t) => t.id === id);
-    if (item?.soon) return;
+    if (item?.soon || !puedeVer(rol, id)) return;
     setTab(id);
     setPalette(false);
   }
@@ -149,7 +192,7 @@ export function AdminShell({ email }: { email: string }) {
 
           {/* Navegación */}
           <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4 [scrollbar-width:thin]">
-            {NAV.map((g) => (
+            {navVisible.map((g) => (
               <div key={g.group}>
                 {!collapsed && (
                   <p className="mb-1 px-2 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">
@@ -245,11 +288,16 @@ export function AdminShell({ email }: { email: string }) {
                 Ver sitio
               </Link>
 
-              <span
-                className="hidden max-w-40 truncate text-xs text-slate-400 lg:block"
-                title={email}
-              >
-                {email}
+              <span className="hidden items-center gap-2 lg:flex">
+                <span
+                  className="max-w-40 truncate text-xs text-slate-400"
+                  title={email}
+                >
+                  {email}
+                </span>
+                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-700 dark:bg-slate-800 dark:text-blue-300">
+                  {rol}
+                </span>
               </span>
 
               <form action={cerrarSesion}>
@@ -278,6 +326,7 @@ export function AdminShell({ email }: { email: string }) {
             {tab === "multimedia" && <MultimediaModule />}
             {tab === "analiticas" && <AnaliticasModule />}
             {tab === "seo" && <SeoModule />}
+            {tab === "usuarios" && <UsuariosModule miId={userId} />}
           </main>
         </div>
       </div>
@@ -309,7 +358,7 @@ export function AdminShell({ email }: { email: string }) {
               </button>
             </div>
             <ul className="max-h-72 overflow-y-auto p-2">
-              {TODOS.map((item) => (
+              {todosVisibles.map((item) => (
                 <li key={item.id}>
                   <button
                     type="button"

@@ -11,4 +11,8 @@ export type TabId =
   | "peticiones"
   | "multimedia"
   | "seo"
+  | "usuarios"
   | "config";
+
+/** Roles del panel (RBAC). admin y pastor tienen acceso total. */
+export type Rol = "admin" | "pastor" | "tesorero" | "lider" | "secretaria";
