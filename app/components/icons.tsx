@@ -317,6 +317,15 @@ export const ServerIcon: Icon = (p) => (
   </svg>
 );
 
+export const IdCardIcon: Icon = (p) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <circle cx="8.5" cy="11" r="2" />
+    <path d="M5.5 16.5a3 3 0 0 1 6 0" />
+    <path d="M14.5 10h4M14.5 13.5h4" />
+  </svg>
+);
+
 export const PencilIcon: Icon = (p) => (
   <svg {...base} {...p}>
     <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />

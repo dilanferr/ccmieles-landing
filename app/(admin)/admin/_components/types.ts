@@ -6,6 +6,7 @@ export type TabId =
   | "clasificados"
   | "eventos"
   | "servicios"
+  | "miembros"
   | "peticiones"
   | "multimedia"
   | "seo"
