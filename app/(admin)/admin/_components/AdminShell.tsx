@@ -29,6 +29,7 @@ import NoticiasModule from "./NoticiasModule";
 import ClasificadosModule from "./ClasificadosModule";
 import EventosModule from "./EventosModule";
 import ServiciosModule from "./ServiciosModule";
+import TurnosModule from "./TurnosModule";
 import MiembrosModule from "./MiembrosModule";
 import FinanzasModule from "./FinanzasModule";
 import PeticionesModule from "./PeticionesModule";
@@ -45,10 +46,12 @@ type NavItem = { id: TabId; label: string; Icon: Icon; soon?: boolean };
    admin/pastor ven TODO. El resto solo las pestañas listadas aquí. */
 const ROLES_TOTALES: Rol[] = ["admin", "pastor"];
 const ACCESO_EXTRA: Partial<Record<TabId, Rol[]>> = {
-  dashboard: ["tesorero", "lider", "secretaria"],
+  dashboard: ["tesorero", "lider", "secretaria", "intercesion"],
   servicios: ["lider", "secretaria"],
+  turnos: ["lider"],
   miembros: ["secretaria"],
   finanzas: ["tesorero"],
+  peticiones: ["intercesion"],
 };
 function puedeVer(rol: Rol, id: TabId): boolean {
   return ROLES_TOTALES.includes(rol) || (ACCESO_EXTRA[id]?.includes(rol) ?? false);
@@ -75,6 +78,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { id: "eventos", label: "Eventos y Cultos", Icon: CalendarIcon },
       { id: "servicios", label: "Servicios semanales", Icon: GridIcon },
+      { id: "turnos", label: "Turnos y Servidores", Icon: UsersIcon },
       { id: "peticiones", label: "Peticiones", Icon: PrayingHands },
     ],
   },
@@ -319,6 +323,7 @@ export function AdminShell({
             {tab === "clasificados" && <ClasificadosModule />}
             {tab === "eventos" && <EventosModule />}
             {tab === "servicios" && <ServiciosModule />}
+            {tab === "turnos" && <TurnosModule />}
             {tab === "miembros" && <MiembrosModule />}
             {tab === "finanzas" && <FinanzasModule />}
             {tab === "peticiones" && <PeticionesModule />}

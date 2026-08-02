@@ -10,7 +10,14 @@ import type { Rol } from "./types";
  * rol ni desactivarse a sí mismo (evita auto-bloqueo).
  */
 
-const ROLES: Rol[] = ["admin", "pastor", "tesorero", "lider", "secretaria"];
+const ROLES: Rol[] = [
+  "admin",
+  "pastor",
+  "tesorero",
+  "lider",
+  "secretaria",
+  "intercesion",
+];
 
 export type Resultado = { ok: boolean; error?: string };
 

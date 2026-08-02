@@ -6,6 +6,7 @@ export type TabId =
   | "clasificados"
   | "eventos"
   | "servicios"
+  | "turnos"
   | "miembros"
   | "finanzas"
   | "peticiones"
@@ -15,4 +16,10 @@ export type TabId =
   | "config";
 
 /** Roles del panel (RBAC). admin y pastor tienen acceso total. */
-export type Rol = "admin" | "pastor" | "tesorero" | "lider" | "secretaria";
+export type Rol =
+  | "admin"
+  | "pastor"
+  | "tesorero"
+  | "lider"
+  | "secretaria"
+  | "intercesion";
