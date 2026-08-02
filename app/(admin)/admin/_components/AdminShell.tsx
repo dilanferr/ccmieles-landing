@@ -19,6 +19,7 @@ import {
   IdCardIcon,
   WalletIcon,
   LockIcon,
+  BookIcon,
   ChevronLeft,
   CloseIcon,
   type Icon,
@@ -39,6 +40,7 @@ import AnaliticasModule from "./AnaliticasModule";
 import SeoModule from "./SeoModule";
 import ImpactoModule from "./ImpactoModule";
 import UsuariosModule from "./UsuariosModule";
+import AuditoriaModule from "./AuditoriaModule";
 
 type NavItem = { id: TabId; label: string; Icon: Icon; soon?: boolean };
 
@@ -100,7 +102,10 @@ const NAV: { group: string; items: NavItem[] }[] = [
   },
   {
     group: "Administración",
-    items: [{ id: "usuarios", label: "Usuarios y Roles", Icon: LockIcon }],
+    items: [
+      { id: "usuarios", label: "Usuarios y Roles", Icon: LockIcon },
+      { id: "auditoria", label: "Auditoría", Icon: BookIcon },
+    ],
   },
 ];
 
@@ -332,6 +337,7 @@ export function AdminShell({
             {tab === "analiticas" && <AnaliticasModule />}
             {tab === "seo" && <SeoModule />}
             {tab === "usuarios" && <UsuariosModule miId={userId} />}
+            {tab === "auditoria" && <AuditoriaModule />}
           </main>
         </div>
       </div>
