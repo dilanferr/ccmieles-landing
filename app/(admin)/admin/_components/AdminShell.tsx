@@ -25,6 +25,7 @@ import DashboardModule from "./DashboardModule";
 import NoticiasModule from "./NoticiasModule";
 import ClasificadosModule from "./ClasificadosModule";
 import EventosModule from "./EventosModule";
+import ServiciosModule from "./ServiciosModule";
 import PeticionesModule from "./PeticionesModule";
 import ConfigModule from "./ConfigModule";
 import MultimediaModule from "./MultimediaModule";
@@ -54,6 +55,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     group: "Gestión",
     items: [
       { id: "eventos", label: "Eventos y Cultos", Icon: CalendarIcon },
+      { id: "servicios", label: "Servicios semanales", Icon: GridIcon },
       { id: "peticiones", label: "Peticiones", Icon: PrayingHands },
     ],
   },
@@ -256,6 +258,7 @@ export function AdminShell({ email }: { email: string }) {
             {tab === "noticias" && <NoticiasModule />}
             {tab === "clasificados" && <ClasificadosModule />}
             {tab === "eventos" && <EventosModule />}
+            {tab === "servicios" && <ServiciosModule />}
             {tab === "peticiones" && <PeticionesModule />}
             {tab === "config" && <ConfigModule />}
             {tab === "multimedia" && <MultimediaModule />}
