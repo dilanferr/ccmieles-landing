@@ -244,6 +244,7 @@ export default function MiembrosModule() {
       const { data, error } = await supabase
         .from("miembros_iglesia")
         .select(COLS)
+        .is("eliminado_at", null)
         .order("nombre_completo", { ascending: true });
       if (!activo) return;
       if (!error && data) setLista((data as FilaDB[]).map(desdeDB));

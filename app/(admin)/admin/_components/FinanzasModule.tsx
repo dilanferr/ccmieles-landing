@@ -256,6 +256,7 @@ export default function FinanzasModule() {
       const { data, error } = await supabase
         .from("transacciones_financieras")
         .select(COLS)
+        .is("eliminado_at", null)
         .order("fecha", { ascending: false })
         .order("created_at", { ascending: false });
       if (!activo) return;

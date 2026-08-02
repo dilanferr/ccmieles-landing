@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerSupabase } from "@/src/utils/supabase-server";
+import { logAudit } from "./audit";
 
 /**
  * Server Actions de Tesorería (transacciones financieras).
@@ -96,6 +97,12 @@ export async function crearTransaccion(
     .single();
 
   if (error) return { ok: false, error: error.message };
+  await logAudit(ctx.supabase, ctx.userId, "CREAR", "finanzas", {
+    id: data.id,
+    tipo: data.tipo,
+    monto: data.monto,
+    categoria: data.categoria,
+  });
   return { ok: true, data: data as TransaccionRow };
 }
 
@@ -120,10 +127,20 @@ export async function actualizarTransaccion(
     .single();
 
   if (error) return { ok: false, error: error.message };
+  await logAudit(ctx.supabase, ctx.userId, "EDITAR", "finanzas", {
+    id: data.id,
+    tipo: data.tipo,
+    monto: data.monto,
+    categoria: data.categoria,
+  });
   return { ok: true, data: data as TransaccionRow };
 }
 
-/** Elimina una transacción (DELETE). */
+/**
+ * Elimina una transacción (SOFT-DELETE: marca `eliminado_at`).
+ * La fila permanece en la base para trazabilidad; los listados la ocultan
+ * filtrando `eliminado_at is null`. Evita pérdidas por clic accidental.
+ */
 export async function eliminarTransaccion(
   id: string | number,
 ): Promise<Resultado> {
@@ -134,8 +151,9 @@ export async function eliminarTransaccion(
 
   const { error } = await ctx.supabase
     .from("transacciones_financieras")
-    .delete()
+    .update({ eliminado_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
+  await logAudit(ctx.supabase, ctx.userId, "ELIMINAR", "finanzas", { id });
   return { ok: true };
 }

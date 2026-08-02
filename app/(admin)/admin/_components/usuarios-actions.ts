@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerSupabase } from "@/src/utils/supabase-server";
+import { logAudit } from "./audit";
 import type { Rol } from "./types";
 
 /**
@@ -46,6 +47,7 @@ export async function actualizarRolUsuario(
     .update({ rol })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
+  await logAudit(ctx.supabase, ctx.userId, "EDITAR", "usuarios", { id, rol });
   return { ok: true };
 }
 
@@ -65,5 +67,6 @@ export async function cambiarEstadoUsuario(
     .update({ activo })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
+  await logAudit(ctx.supabase, ctx.userId, "EDITAR", "usuarios", { id, activo });
   return { ok: true };
 }

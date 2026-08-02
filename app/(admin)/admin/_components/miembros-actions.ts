@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerSupabase } from "@/src/utils/supabase-server";
+import { logAudit } from "./audit";
 
 /**
  * Server Actions del Registro Pastoral (fichas de miembros).
@@ -38,7 +39,7 @@ async function getAdminClient() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  return user ? supabase : null;
+  return user ? { supabase, userId: user.id } : null;
 }
 
 /** Limpia el input: recorta strings y convierte los vacíos en null. */
@@ -66,8 +67,8 @@ function normalizar(input: MiembroInput) {
 export async function crearMiembro(
   input: MiembroInput,
 ): Promise<Resultado<MiembroRow>> {
-  const supabase = await getAdminClient();
-  if (!supabase) {
+  const ctx = await getAdminClient();
+  if (!ctx) {
     return { ok: false, error: "Sesión expirada. Vuelve a iniciar sesión." };
   }
 
@@ -76,13 +77,17 @@ export async function crearMiembro(
     return { ok: false, error: "El nombre completo es obligatorio." };
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await ctx.supabase
     .from("miembros_iglesia")
     .insert(fila)
     .select(COLS)
     .single();
 
   if (error) return { ok: false, error: error.message };
+  await logAudit(ctx.supabase, ctx.userId, "CREAR", "miembros", {
+    id: data.id,
+    nombre: data.nombre_completo,
+  });
   return { ok: true, data: data as MiembroRow };
 }
 
@@ -91,8 +96,8 @@ export async function actualizarMiembro(
   id: string | number,
   input: MiembroInput,
 ): Promise<Resultado<MiembroRow>> {
-  const supabase = await getAdminClient();
-  if (!supabase) {
+  const ctx = await getAdminClient();
+  if (!ctx) {
     return { ok: false, error: "Sesión expirada. Vuelve a iniciar sesión." };
   }
 
@@ -101,7 +106,7 @@ export async function actualizarMiembro(
     return { ok: false, error: "El nombre completo es obligatorio." };
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await ctx.supabase
     .from("miembros_iglesia")
     .update({ ...fila, actualizado_at: new Date().toISOString() })
     .eq("id", id)
@@ -109,22 +114,31 @@ export async function actualizarMiembro(
     .single();
 
   if (error) return { ok: false, error: error.message };
+  await logAudit(ctx.supabase, ctx.userId, "EDITAR", "miembros", {
+    id: data.id,
+    nombre: data.nombre_completo,
+  });
   return { ok: true, data: data as MiembroRow };
 }
 
-/** Elimina una ficha (DELETE). */
+/**
+ * Elimina una ficha (SOFT-DELETE: marca `eliminado_at`).
+ * Los datos pastorales/médicos no se pierden por un clic; los listados y el
+ * directorio seguro los ocultan filtrando `eliminado_at is null`.
+ */
 export async function eliminarMiembro(
   id: string | number,
 ): Promise<Resultado> {
-  const supabase = await getAdminClient();
-  if (!supabase) {
+  const ctx = await getAdminClient();
+  if (!ctx) {
     return { ok: false, error: "Sesión expirada. Vuelve a iniciar sesión." };
   }
 
-  const { error } = await supabase
+  const { error } = await ctx.supabase
     .from("miembros_iglesia")
-    .delete()
+    .update({ eliminado_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
+  await logAudit(ctx.supabase, ctx.userId, "ELIMINAR", "miembros", { id });
   return { ok: true };
 }
