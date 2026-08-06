@@ -1,7 +1,12 @@
 "use server";
 
 import { createServerSupabase } from "@/src/utils/supabase-server";
-import { logAudit } from "./audit";
+
+/*
+ * La auditoría se registra automáticamente por TRIGGERS de base de datos
+ * (supabase/audit-triggers.sql), no desde la app: así es inalterable y ninguna
+ * escritura puede saltársela. Por eso aquí ya NO llamamos a logAudit.
+ */
 
 /**
  * Server Actions de Tesorería (transacciones financieras).
@@ -97,12 +102,6 @@ export async function crearTransaccion(
     .single();
 
   if (error) return { ok: false, error: error.message };
-  await logAudit(ctx.supabase, ctx.userId, "CREAR", "finanzas", {
-    id: data.id,
-    tipo: data.tipo,
-    monto: data.monto,
-    categoria: data.categoria,
-  });
   return { ok: true, data: data as TransaccionRow };
 }
 
@@ -127,12 +126,6 @@ export async function actualizarTransaccion(
     .single();
 
   if (error) return { ok: false, error: error.message };
-  await logAudit(ctx.supabase, ctx.userId, "EDITAR", "finanzas", {
-    id: data.id,
-    tipo: data.tipo,
-    monto: data.monto,
-    categoria: data.categoria,
-  });
   return { ok: true, data: data as TransaccionRow };
 }
 
@@ -154,6 +147,5 @@ export async function eliminarTransaccion(
     .update({ eliminado_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
-  await logAudit(ctx.supabase, ctx.userId, "ELIMINAR", "finanzas", { id });
   return { ok: true };
 }

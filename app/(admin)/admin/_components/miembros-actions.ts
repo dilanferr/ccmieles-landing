@@ -1,7 +1,11 @@
 "use server";
 
 import { createServerSupabase } from "@/src/utils/supabase-server";
-import { logAudit } from "./audit";
+
+/*
+ * La auditoría se registra por TRIGGERS de base de datos
+ * (supabase/audit-triggers.sql), no desde la app. Ver finanzas-actions.
+ */
 
 /**
  * Server Actions del Registro Pastoral (fichas de miembros).
@@ -84,10 +88,6 @@ export async function crearMiembro(
     .single();
 
   if (error) return { ok: false, error: error.message };
-  await logAudit(ctx.supabase, ctx.userId, "CREAR", "miembros", {
-    id: data.id,
-    nombre: data.nombre_completo,
-  });
   return { ok: true, data: data as MiembroRow };
 }
 
@@ -114,10 +114,6 @@ export async function actualizarMiembro(
     .single();
 
   if (error) return { ok: false, error: error.message };
-  await logAudit(ctx.supabase, ctx.userId, "EDITAR", "miembros", {
-    id: data.id,
-    nombre: data.nombre_completo,
-  });
   return { ok: true, data: data as MiembroRow };
 }
 
@@ -139,6 +135,5 @@ export async function eliminarMiembro(
     .update({ eliminado_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
-  await logAudit(ctx.supabase, ctx.userId, "ELIMINAR", "miembros", { id });
   return { ok: true };
 }
