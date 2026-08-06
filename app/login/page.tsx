@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/src/utils/supabase";
 import { LockIcon, MailIcon } from "@/app/components/icons";
@@ -10,9 +10,23 @@ const inputBase =
   "w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100";
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const params = useSearchParams();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  // Mensaje inicial si el middleware nos mandó por cuenta desactivada.
+  const [error, setError] = useState(
+    params.get("error") === "cuenta_desactivada"
+      ? "Tu cuenta está desactivada. Contacta a un administrador para recuperar el acceso."
+      : "",
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
