@@ -25,8 +25,10 @@ import {
   CloseIcon,
   DownloadIcon,
   SearchIcon,
+  FileIcon,
 } from "@/app/components/icons";
 import { getDb } from "./db";
+import ComprobanteUploader from "./ComprobanteUploader";
 import { LOGO_URL, IGLESIA } from "@/app/data/iglesia";
 import {
   crearTransaccion,
@@ -617,6 +619,18 @@ export default function FinanzasModule() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-1">
+                        {t.comprobante_url && (
+                          <a
+                            href={t.comprobante_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Ver comprobante"
+                            title="Ver comprobante"
+                            className="inline-grid h-9 w-9 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+                          >
+                            <FileIcon className="h-4.5 w-4.5" />
+                          </a>
+                        )}
                         <button
                           type="button"
                           onClick={() => editar(t)}
@@ -752,13 +766,15 @@ export default function FinanzasModule() {
                 />
               </Field>
 
-              <Field label="Comprobante (URL)" hint="Opcional · boleta o factura">
-                <Input
-                  value={form.comprobante_url}
-                  onChange={set("comprobante_url")}
-                  placeholder="https://…"
-                />
-              </Field>
+              <ComprobanteUploader
+                value={form.comprobante_url}
+                onChange={(url) =>
+                  setForm((f) => ({ ...f, comprobante_url: url }))
+                }
+                folder="finanzas"
+                label="Comprobante"
+                hint="Opcional · boleta o factura (JPG, PNG, WEBP o PDF)"
+              />
 
               {msg && !msg.ok && <Alerta ok={false}>{msg.text}</Alerta>}
 

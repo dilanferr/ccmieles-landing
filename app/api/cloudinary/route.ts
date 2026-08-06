@@ -116,8 +116,18 @@ export async function POST(req: Request) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "no-file" }, { status: 400 });
   }
-  if (!file.type.startsWith("image/")) {
-    return NextResponse.json({ error: "not-an-image" }, { status: 400 });
+  // Formatos permitidos: imágenes comunes + PDF (boletas/facturas).
+  const TIPOS_OK = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+    "image/avif",
+    "application/pdf",
+  ];
+  const esImagen = file.type.startsWith("image/");
+  if (!TIPOS_OK.includes(file.type)) {
+    return NextResponse.json({ error: "tipo-no-permitido" }, { status: 400 });
   }
 
   // Carpeta destino: se sanea y siempre queda dentro de "Mieles/".
@@ -129,18 +139,20 @@ export async function POST(req: Request) {
     ? carpetaCruda
     : `Mieles/${carpetaCruda || "uploads"}`;
 
-  // Optimización AL SUBIR (incoming transformation): redimensiona a máx.
-  // 1600px conservando proporción y aplica calidad automática. Reduce el
-  // peso almacenado en la nube sin perder calidad visible para la web.
-  const transformation = "c_limit,w_1600,h_1600,q_auto:good";
+  // Las imágenes se optimizan AL SUBIR (incoming transformation): máx. 1600px
+  // conservando proporción + calidad automática, reduciendo el peso en la nube.
+  // Los PDF se suben como recurso "raw" (sin transformar): así quedan siempre
+  // entregables, sin depender de la opción de entrega de PDF de la cuenta.
+  const resourceType = esImagen ? "image" : "raw";
+  const transformation = esImagen ? "c_limit,w_1600,h_1600,q_auto:good" : null;
 
   // 4) Firma: SHA-1 de los parámetros (orden alfabético) + api_secret.
   const timestamp = Math.round(Date.now() / 1000);
   const paramsAFirmar: Record<string, string> = {
     folder,
     timestamp: String(timestamp),
-    transformation,
   };
+  if (transformation) paramsAFirmar.transformation = transformation;
   const toSign = Object.keys(paramsAFirmar)
     .sort()
     .map((k) => `${k}=${paramsAFirmar[k]}`)
@@ -154,13 +166,13 @@ export async function POST(req: Request) {
   upload.append("api_key", key);
   upload.append("timestamp", String(timestamp));
   upload.append("folder", folder);
-  upload.append("transformation", transformation);
+  if (transformation) upload.append("transformation", transformation);
   upload.append("signature", signature);
 
   // 5) Subida a Cloudinary.
   try {
     const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloud}/image/upload`,
+      `https://api.cloudinary.com/v1_1/${cloud}/${resourceType}/upload`,
       { method: "POST", body: upload },
     );
     const json = await res.json();
@@ -173,6 +185,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       secure_url: json.secure_url,
       public_id: json.public_id,
+      resource_type: json.resource_type,
+      format: json.format ?? null,
     });
   } catch {
     return NextResponse.json({ error: "fetch-failed" }, { status: 502 });
