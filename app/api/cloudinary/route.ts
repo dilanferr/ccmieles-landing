@@ -2,6 +2,26 @@ import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { createServerSupabase } from "@/src/utils/supabase-server";
 
+// Roles autorizados (M3). Subir: contenido (admin/pastor) + comprobantes de
+// tesorería (tesorero). Listar la biblioteca de medios: solo admin/pastor.
+const ROLES_SUBIDA = ["admin", "pastor", "tesorero"];
+const ROLES_LISTADO = ["admin", "pastor"];
+
+/**
+ * Resuelve el rol del usuario autenticado mediante public.mi_rol()
+ * (respeta el flag `activo`). Devuelve null si no hay sesión.
+ */
+async function rolDe(
+  supabase: Awaited<ReturnType<typeof createServerSupabase>>,
+): Promise<string | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase.rpc("mi_rol");
+  return (data as string | null) ?? "";
+}
+
 /**
  * Route Handler seguro para la Admin API de Cloudinary.
  * Las credenciales (API_KEY / API_SECRET) viven SOLO en el servidor.
@@ -11,13 +31,14 @@ import { createServerSupabase } from "@/src/utils/supabase-server";
  *   POST  /api/cloudinary  → sube una imagen (firmada) → { secure_url, public_id }
  */
 export async function GET() {
-  // 1) Verificar sesión
+  // 1) Verificar sesión + rol (solo admin/pastor listan la biblioteca).
   const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const rol = await rolDe(supabase);
+  if (rol === null) {
     return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  }
+  if (!ROLES_LISTADO.includes(rol)) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
   // 2) Credenciales
@@ -93,13 +114,14 @@ export async function GET() {
  * en `imagen_url`.
  */
 export async function POST(req: Request) {
-  // 1) Verificar sesión de administrador.
+  // 1) Verificar sesión + rol (admin/pastor/tesorero pueden subir).
   const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const rol = await rolDe(supabase);
+  if (rol === null) {
     return NextResponse.json({ error: "no-auth" }, { status: 401 });
+  }
+  if (!ROLES_SUBIDA.includes(rol)) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
   // 2) Credenciales.
