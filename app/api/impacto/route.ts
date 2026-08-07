@@ -1,25 +1,16 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/src/utils/supabase-server";
 
-const nf = (n: number) => Math.round(n);
+/**
+ * Estadísticas de impacto (M7). Toda la agregación pesada de
+ * page_views/page_events/peticiones ocurre en la BD vía el RPC
+ * fn_get_impacto_stats(dias) — ya no se traen miles de filas a memoria.
+ * Aquí solo se ensambla el payload (heurísticas de índice, insights y
+ * recomendaciones), manteniendo EXACTAMENTE la misma forma que consume
+ * ImpactoModule.tsx. Gateado a admin/pastor.
+ */
 
-function fuenteDe(ref: string | null): string {
-  if (!ref) return "Directo";
-  try {
-    const host = new URL(ref).hostname.replace("www.", "");
-    if (host.includes("google")) return "Google";
-    if (host.includes("facebook") || host.includes("fb.")) return "Facebook";
-    if (host.includes("instagram")) return "Instagram";
-    if (host.includes("whatsapp") || host.includes("wa.me")) return "WhatsApp";
-    if (host.includes("youtube") || host.includes("youtu.be")) return "YouTube";
-    if (host.includes("bing")) return "Bing";
-    if (host.includes("t.co") || host.includes("twitter") || host.includes("x.com"))
-      return "X";
-    return host;
-  } catch {
-    return "Directo";
-  }
-}
+const nf = (n: number) => Math.round(n);
 
 const LABEL_MIN: Record<string, string> = {
   "/grupos/cuerpo-ministerial": "Cuerpo Ministerial",
@@ -33,6 +24,40 @@ const LABEL_MIN: Record<string, string> = {
   "/oracion-peticion": "Oración y Petición",
 };
 
+type ImpactoStats = {
+  visitas: number;
+  alcanzadas: number;
+  tiempo_promedio_ms: number;
+  planificaron: number;
+  testimonio_plays: number;
+  shares: number;
+  prev_visitas: number;
+  peticiones_total: number;
+  peticiones_pendientes: number;
+  paginas: { path: string; n: number }[];
+  fuentes: { fuente: string; n: number }[];
+  ciudades: { ciudad: string; n: number }[];
+  serie: { key: string; n: number }[];
+  motivos: { motivo: string; n: number }[];
+};
+
+const VACIO: ImpactoStats = {
+  visitas: 0,
+  alcanzadas: 0,
+  tiempo_promedio_ms: 0,
+  planificaron: 0,
+  testimonio_plays: 0,
+  shares: 0,
+  prev_visitas: 0,
+  peticiones_total: 0,
+  peticiones_pendientes: 0,
+  paginas: [],
+  fuentes: [],
+  ciudades: [],
+  serie: [],
+  motivos: [],
+};
+
 export async function GET(req: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -40,75 +65,50 @@ export async function GET(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "no-auth" }, { status: 401 });
 
+  // Gating por rol: solo admin/pastor (los datos incluyen peticiones).
+  const { data: rol } = await supabase.rpc("mi_rol");
+  if (!["admin", "pastor"].includes((rol as string | null) ?? "")) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
   const url = new URL(req.url);
   const daysRaw = Number(url.searchParams.get("days") ?? "30");
   const days = [7, 30, 90].includes(daysRaw) ? daysRaw : 30;
-  const now = Date.now();
-  const desde = new Date(now - days * 864e5).toISOString();
-  const desdePrev = new Date(now - 2 * days * 864e5).toISOString();
 
-  // --- page_views (detecta si el tracking está sembrado) ---
-  const pvRes = await supabase
-    .from("page_views")
-    .select("path, session_id, referrer, country, city, creado_at")
-    .gte("creado_at", desde)
-    .limit(20000);
+  // --- Agregación en la BD (una sola llamada) ---
+  const { data, error } = await supabase.rpc("fn_get_impacto_stats", {
+    dias: days,
+  });
 
-  // Solo tratamos el módulo como "sin tabla" cuando Postgres dice
-  // EXPLÍCITAMENTE que la relación no existe (42P01 = undefined_table).
-  // Una tabla vacía NO es un error (devuelve data: []), y cualquier otro
-  // error (RLS, permisos, red) no debe bloquear el panel: seguimos con [].
-  if (pvRes.error?.code === "42P01") {
+  // Sin tabla/función todavía → el panel muestra el estado inicial.
+  if (
+    error?.code === "42P01" ||
+    /does not exist|undefined_table|undefined_function/i.test(
+      error?.message ?? "",
+    )
+  ) {
     return NextResponse.json({ sinTabla: true });
   }
-  if (pvRes.error) {
-    console.error("[impacto] error consultando page_views:", pvRes.error);
-  }
-  const pv = pvRes.data ?? [];
+  if (error) console.error("[impacto] RPC error:", error);
 
-  // --- page_events ---
-  const peRes = await supabase
-    .from("page_events")
-    .select("name, meta, path")
-    .gte("creado_at", desde)
-    .limit(20000);
-  const pe = peRes.error ? [] : (peRes.data ?? []);
+  const s: ImpactoStats = {
+    ...VACIO,
+    ...((data as Partial<ImpactoStats>) ?? {}),
+  };
 
-  // --- peticiones ---
-  const petRes = await supabase
-    .from("peticiones_oracion")
-    .select("motivo, leido");
-  const pet = petRes.error ? [] : (petRes.data ?? []);
+  const now = Date.now();
+  const porPagina: Record<string, number> = Object.fromEntries(
+    (s.paginas ?? []).map((p) => [p.path, p.n]),
+  );
 
-  // ---------- Agregaciones ----------
-  const sesiones = new Set<string>();
-  const porPagina: Record<string, number> = {};
-  const fuentes: Record<string, number> = {};
-  const ciudades: Record<string, number> = {};
-  const serieMap: Record<string, number> = {};
-  for (const r of pv) {
-    if (r.session_id) sesiones.add(r.session_id as string);
-    const p = r.path as string;
-    porPagina[p] = (porPagina[p] ?? 0) + 1;
-    const f = fuenteDe(r.referrer as string | null);
-    fuentes[f] = (fuentes[f] ?? 0) + 1;
-    if (r.city) ciudades[r.city as string] = (ciudades[r.city as string] ?? 0) + 1;
-    const k = (r.creado_at as string).slice(0, 10);
-    serieMap[k] = (serieMap[k] ?? 0) + 1;
-  }
-
-  const eventoCount = (name: string) => pe.filter((e) => e.name === name).length;
-  const duraciones = pe
-    .filter((e) => e.name === "duration")
-    .map((e) => Number((e.meta as { ms?: number })?.ms ?? 0))
-    .filter((n) => n > 0 && n < 30 * 60 * 1000);
-  const tiempoPromedioMs = duraciones.length
-    ? duraciones.reduce((a, b) => a + b, 0) / duraciones.length
-    : 0;
-
-  const alcanzadas = sesiones.size;
-  const planificaron = eventoCount("visit_plan_click");
-  const testimonioPlays = eventoCount("testimonio_play");
+  const visitas = s.visitas;
+  const alcanzadas = s.alcanzadas;
+  const tiempoPromedioMs = Number(s.tiempo_promedio_ms) || 0;
+  const planificaron = s.planificaron;
+  const testimonioPlays = s.testimonio_plays;
+  const shares = s.shares;
+  const petTotal = s.peticiones_total;
+  const peticionesPendientes = s.peticiones_pendientes;
 
   const ministerios = Object.entries(porPagina)
     .filter(([p]) => LABEL_MIN[p] || p.startsWith("/grupos/"))
@@ -116,29 +116,30 @@ export async function GET(req: Request) {
     .sort((a, b) => b.n - a.n)
     .slice(0, 6);
 
-  const totalFuentes = Object.values(fuentes).reduce((a, b) => a + b, 0) || 1;
-  const fuentesArr = Object.entries(fuentes)
-    .map(([fuente, n]) => ({ fuente, n, pct: Math.round((n / totalFuentes) * 100) }))
+  const totalFuentes = (s.fuentes ?? []).reduce((a, f) => a + f.n, 0) || 1;
+  const fuentesArr = (s.fuentes ?? [])
+    .map((f) => ({
+      fuente: f.fuente,
+      n: f.n,
+      pct: Math.round((f.n / totalFuentes) * 100),
+    }))
     .sort((a, b) => b.n - a.n)
     .slice(0, 8);
 
-  const motivos: Record<string, number> = {};
-  for (const p of pet) {
-    const m = (p.motivo as string) || "Otros";
-    motivos[m] = (motivos[m] ?? 0) + 1;
-  }
-  const motivosArr = Object.entries(motivos)
-    .map(([motivo, n]) => ({ motivo, n }))
-    .sort((a, b) => b.n - a.n)
-    .slice(0, 6);
-  const peticionesPendientes = pet.filter((p) => !p.leido).length;
-
-  const ciudadesArr = Object.entries(ciudades)
-    .map(([ciudad, n]) => ({ ciudad, n }))
+  const motivosArr = (s.motivos ?? [])
+    .map((m) => ({ motivo: m.motivo, n: m.n }))
     .sort((a, b) => b.n - a.n)
     .slice(0, 6);
 
-  // Serie diaria
+  const ciudadesArr = (s.ciudades ?? [])
+    .map((c) => ({ ciudad: c.ciudad, n: c.n }))
+    .sort((a, b) => b.n - a.n)
+    .slice(0, 6);
+
+  // Serie diaria (labels/keys en JS; los conteos vienen del RPC).
+  const serieMap: Record<string, number> = Object.fromEntries(
+    (s.serie ?? []).map((d) => [d.key, d.n]),
+  );
   const serie = Array.from({ length: Math.min(days, 30) }, (_, i) => {
     const dt = new Date(now - (Math.min(days, 30) - 1 - i) * 864e5);
     const key = dt.toISOString().slice(0, 10);
@@ -158,26 +159,20 @@ export async function GET(req: Request) {
   const factores = [
     { label: "Personas alcanzadas", peso: 0.25, valor: alcanzadas, n: norm(alcanzadas, 400 * escala) },
     { label: "Tiempo de permanencia", peso: 0.15, valor: Math.round(tiempoPromedioMs / 1000), n: norm(tiempoPromedioMs, 90000) },
-    { label: "Acción (oración + visitas)", peso: 0.2, valor: pet.length + planificaron, n: norm(pet.length + planificaron, 20 * escala) },
+    { label: "Acción (oración + visitas)", peso: 0.2, valor: petTotal + planificaron, n: norm(petTotal + planificaron, 20 * escala) },
     { label: "Testimonios reproducidos", peso: 0.15, valor: testimonioPlays, n: norm(testimonioPlays, 40 * escala) },
     { label: "Interés en eventos", peso: 0.1, valor: porPagina["/eventos"] ?? 0, n: norm(porPagina["/eventos"] ?? 0, 120 * escala) },
     { label: "Interés en ministerios", peso: 0.1, valor: ministerios.reduce((a, m) => a + m.n, 0), n: norm(ministerios.reduce((a, m) => a + m.n, 0), 300 * escala) },
-    { label: "Contenido compartido", peso: 0.05, valor: eventoCount("share"), n: norm(eventoCount("share"), 20 * escala) },
+    { label: "Contenido compartido", peso: 0.05, valor: shares, n: norm(shares, 20 * escala) },
   ];
   const score = Math.round(100 * factores.reduce((a, f) => a + f.peso * f.n, 0));
   const nivel =
     score >= 80 ? "Excelente" : score >= 60 ? "Bueno" : score >= 40 ? "En crecimiento" : "Necesita atención";
 
-  // Delta de visitas vs. período anterior
-  const prevRes = await supabase
-    .from("page_views")
-    .select("*", { count: "exact", head: true })
-    .gte("creado_at", desdePrev)
-    .lt("creado_at", desde);
-  const prevVisitas = prevRes.error ? null : prevRes.count ?? 0;
+  const prevVisitas = s.prev_visitas;
   const deltaVisitas =
     prevVisitas && prevVisitas > 0
-      ? Math.round(((pv.length - prevVisitas) / prevVisitas) * 100)
+      ? Math.round(((visitas - prevVisitas) / prevVisitas) * 100)
       : null;
 
   // ---------- Insights (heurística) ----------
@@ -210,12 +205,12 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     sinTabla: false,
-    sinDatos: pv.length === 0,
+    sinDatos: visitas === 0,
     days,
     resumen: {
       alcanzadas,
-      visitas: pv.length,
-      peticiones: pet.length,
+      visitas,
+      peticiones: petTotal,
       peticionesPendientes,
       planificaron,
       testimonioPlays,
