@@ -165,8 +165,13 @@ export async function POST(req: Request) {
   // conservando proporción + calidad automática, reduciendo el peso en la nube.
   // Los PDF se suben como recurso "raw" (sin transformar): así quedan siempre
   // entregables, sin depender de la opción de entrega de PDF de la cuenta.
+  // Comprobantes de tesorería: se suben como recurso PRIVADO (type=authenticated),
+  // solo entregable por URL firmada. El flag lo envía ComprobanteUploader; el
+  // contenido público (noticias/eventos) se sube normal (type=upload).
+  const privado = String(form.get("privado") ?? "") === "1";
   const resourceType = esImagen ? "image" : "raw";
   const transformation = esImagen ? "c_limit,w_1600,h_1600,q_auto:good" : null;
+  const tipoEntrega = privado ? "authenticated" : null;
 
   // 4) Firma: SHA-1 de los parámetros (orden alfabético) + api_secret.
   const timestamp = Math.round(Date.now() / 1000);
@@ -175,6 +180,7 @@ export async function POST(req: Request) {
     timestamp: String(timestamp),
   };
   if (transformation) paramsAFirmar.transformation = transformation;
+  if (tipoEntrega) paramsAFirmar.type = tipoEntrega;
   const toSign = Object.keys(paramsAFirmar)
     .sort()
     .map((k) => `${k}=${paramsAFirmar[k]}`)
@@ -189,6 +195,7 @@ export async function POST(req: Request) {
   upload.append("timestamp", String(timestamp));
   upload.append("folder", folder);
   if (transformation) upload.append("transformation", transformation);
+  if (tipoEntrega) upload.append("type", tipoEntrega);
   upload.append("signature", signature);
 
   // 5) Subida a Cloudinary.
@@ -209,6 +216,8 @@ export async function POST(req: Request) {
       public_id: json.public_id,
       resource_type: json.resource_type,
       format: json.format ?? null,
+      version: json.version ?? null,
+      type: json.type ?? "upload",
     });
   } catch {
     return NextResponse.json({ error: "fetch-failed" }, { status: 502 });

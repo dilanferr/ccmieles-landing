@@ -21,10 +21,12 @@ const TIPOS_OK = [
 const ACCEPT = TIPOS_OK.join(",");
 const MAX_MB = 10;
 
-/** Un comprobante es imagen si la URL tiene extensión de imagen o va por
- *  el pipeline /image/upload/. Los PDF llegan como recurso raw. */
+/** Un comprobante es imagen si: va por el proxy privado con rt=image, tiene
+ *  extensión de imagen, o va por el pipeline /image/upload/. Los PDF son raw. */
 const esImagenUrl = (u: string) =>
-  /\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(u) || /\/image\/upload\//.test(u);
+  /[?&]rt=image(&|$)/.test(u) ||
+  /\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(u) ||
+  /\/image\/upload\//.test(u);
 
 export default function ComprobanteUploader({
   value,
@@ -59,10 +61,15 @@ export default function ComprobanteUploader({
       const fd = new FormData();
       fd.append("file", file);
       fd.append("folder", folder);
+      fd.append("privado", "1"); // sube como recurso privado (type=authenticated)
       const res = await fetch("/api/cloudinary", { method: "POST", body: fd });
       const json = await res.json();
-      if (res.ok && json?.secure_url) {
-        onChange(json.secure_url as string);
+      if (res.ok && json?.public_id) {
+        // Guardamos la URL del PROXY gateado, no la de Cloudinary.
+        const rt = json.resource_type === "raw" ? "raw" : "image";
+        const p = new URLSearchParams({ rt, id: String(json.public_id) });
+        if (rt === "image" && json.format) p.set("f", String(json.format));
+        onChange(`/api/comprobante?${p.toString()}`);
       } else {
         setError(
           json?.error
