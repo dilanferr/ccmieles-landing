@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { createClient } from "@/src/utils/supabase";
+import { useEffect, useRef, useState } from "react";
 import { MOTIVOS_ORACION } from "@/app/data/iglesia";
 import { CheckIcon, LockIcon, HeartIcon } from "./icons";
 
@@ -13,6 +12,11 @@ const inputBase =
 export default function PrayerForm() {
   const [estado, setEstado] = useState<Estado>("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  // Marca de tiempo de montaje (en el cliente) para el chequeo anti-bot.
+  const montadoEn = useRef(0);
+  useEffect(() => {
+    montadoEn.current = Date.now();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -26,16 +30,24 @@ export default function PrayerForm() {
       apellido: String(fd.get("apellido") ?? "").trim(),
       motivo: String(fd.get("motivo") ?? ""),
       descripcion: String(fd.get("descripcion") ?? "").trim(),
-      leido: false,
+      website: String(fd.get("website") ?? ""), // honeypot (debe ir vacío)
+      t: montadoEn.current,
     };
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("peticiones_oracion")
-        .insert(payload);
-
-      if (error) throw error;
+      const res = await fetch("/api/peticion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.ok) {
+        throw new Error(
+          res.status === 429
+            ? "Demasiados envíos. Espera un momento e inténtalo de nuevo."
+            : "No pudimos enviar tu petición. Inténtalo nuevamente.",
+        );
+      }
       setEstado("ok");
       form.reset();
     } catch (err) {
@@ -93,6 +105,18 @@ export default function PrayerForm() {
           </span>{" "}
           y solo la puede visualizar el Encargado y el Cuerpo Ministerial.
         </p>
+      </div>
+
+      {/* Honeypot anti-bot: oculto para humanos; si se llena, es un bot. */}
+      <div className="hidden" aria-hidden="true">
+        <label htmlFor="website">No completar este campo</label>
+        <input
+          id="website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+        />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
