@@ -12,10 +12,15 @@ export interface FakeResult {
 }
 
 export function fakeSupabase(
-  opts: { user?: { id: string } | null; result?: FakeResult } = {},
+  opts: {
+    user?: { id: string } | null;
+    result?: FakeResult;
+    rol?: string;
+  } = {},
 ) {
   const user = opts.user === undefined ? { id: "u1" } : opts.user;
   const result: FakeResult = opts.result ?? { data: null, error: null };
+  const rol = opts.rol ?? "admin"; // rol devuelto por supabase.rpc("mi_rol")
 
   const builder = {
     insert: vi.fn(() => builder),
@@ -26,6 +31,7 @@ export function fakeSupabase(
     is: vi.fn(() => builder),
     order: vi.fn(() => builder),
     single: vi.fn(() => Promise.resolve(result)),
+    maybeSingle: vi.fn(() => Promise.resolve(result)),
     // Hace `await from().update().eq()` (sin .single()) resolver el resultado.
     then: (resolve: (v: FakeResult) => void) => resolve(result),
   };
@@ -34,6 +40,6 @@ export function fakeSupabase(
     _builder: builder,
     from: vi.fn(() => builder),
     auth: { getUser: vi.fn(async () => ({ data: { user } })) },
-    rpc: vi.fn(async () => ({ data: null, error: null })),
+    rpc: vi.fn(async () => ({ data: rol, error: null })),
   };
 }

@@ -18,9 +18,11 @@ import {
   TrashIcon,
   CloseIcon,
   ExchangeIcon,
+  DownloadIcon,
 } from "@/app/components/icons";
 import { getDb } from "./db";
 import ImageUploader from "./ImageUploader";
+import { esc, exportarPdf } from "@/src/utils/exportPdf";
 import {
   crearBien,
   actualizarBien,
@@ -103,6 +105,21 @@ function hoyISO() {
 
 const SEL =
   "rounded-lg border border-slate-200 bg-white py-1.5 pl-2.5 pr-7 text-sm text-slate-700 outline-none transition-colors focus:border-blue-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200";
+
+/** CSS específico del inventario para el PDF (el esqueleto lo aporta exportPdf). */
+const CSS_INVENTARIO_PDF = `
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+  .kpi{border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px}
+  .kpi .l{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8}
+  .kpi .v{font-size:20px;font-weight:800;margin-top:4px}
+  table{width:100%;border-collapse:collapse;margin-top:24px;font-size:12px}
+  thead th{background:#1e3a8a;color:#fff;text-align:left;padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+  thead th:last-child{text-align:right}
+  tbody td{padding:9px 12px;border-bottom:1px solid #e9eef5}
+  tbody tr:nth-child(even){background:#f8fafc}
+  .num{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;background:#eff6ff;color:#1d4ed8}
+`;
 
 const VACIO = {
   nombre: "",
@@ -299,6 +316,56 @@ export default function InventarioModule() {
     setMsg({ ok: true, text: "Bien eliminado del inventario." });
   }
 
+  // ---- Exportar PDF (inventario valorizado, según los filtros) ----
+  function exportar() {
+    const rows = filtrados
+      .map((b) => {
+        const abiertosB = porBien.get(b.id) ?? [];
+        const disp =
+          abiertosB.length > 0
+            ? `Prestado a ${nombreResponsable(abiertosB[0].miembro_id)}`
+            : "Disponible";
+        return `<tr>
+        <td>${esc(b.nombre)}${b.nro_serie ? ` <span style="color:#94a3b8">· N° ${esc(b.nro_serie)}</span>` : ""}</td>
+        <td>${esc(b.categoria)}</td>
+        <td><span class="tag">${esc(ESTADO_META[b.estado].label)}</span></td>
+        <td class="num">${b.cantidad}</td>
+        <td>${esc(b.ubicacion || "—")}</td>
+        <td>${esc(nombreResponsable(b.responsable_id))}</td>
+        <td>${esc(disp)}</td>
+        <td class="num">${esc(clp(b.valor * (b.cantidad || 1)))}</td>
+      </tr>`;
+      })
+      .join("");
+    const cuerpo = `<div class="kpis">
+      <div class="kpi"><div class="l">Ítems</div><div class="v">${kpis.items}</div></div>
+      <div class="kpi"><div class="l">Valor total</div><div class="v">${esc(clp(kpis.valor))}</div></div>
+      <div class="kpi"><div class="l">Prestados</div><div class="v">${kpis.prestados}</div></div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Bien</th><th>Categoría</th><th>Estado</th><th>Cant.</th><th>Ubicación</th><th>Responsable</th><th>Disponibilidad</th><th>Valor</th>
+      </tr></thead>
+      <tbody>${rows || '<tr><td colspan="8" style="padding:20px;text-align:center;color:#94a3b8">Sin bienes que coincidan con los filtros.</td></tr>'}</tbody>
+    </table>`;
+    const ok = exportarPdf({
+      titulo: "Inventario",
+      encabezado: "Inventario de Bienes",
+      subtitulo: `${filtrados.length} bienes · Valor total ${clp(kpis.valor)}`,
+      cuerpo,
+      estilos: CSS_INVENTARIO_PDF,
+      orientacion: "horizontal",
+      ancho: 1200,
+      margenMm: 12,
+    });
+    if (!ok) {
+      setMsg({
+        ok: false,
+        text: "Permite las ventanas emergentes para exportar el inventario.",
+      });
+    }
+  }
+
   // ---- Préstamos ----
   async function abrirPrestamos(b: Bien) {
     setBienPrestamo(b);
@@ -409,7 +476,16 @@ export default function InventarioModule() {
         <span className="text-sm text-slate-400">
           {filtrados.length} {filtrados.length === 1 ? "bien" : "bienes"}
         </span>
-        <Button type="button" onClick={abrirNuevo} className="ml-auto">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={exportar}
+          className="ml-auto"
+        >
+          <DownloadIcon className="h-4 w-4" />
+          Exportar
+        </Button>
+        <Button type="button" onClick={abrirNuevo}>
           + Nuevo bien
         </Button>
       </div>
