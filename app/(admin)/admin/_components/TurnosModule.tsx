@@ -26,7 +26,7 @@ import {
   ChevronRight,
 } from "@/app/components/icons";
 import { getDb } from "./db";
-import { LOGO_URL, IGLESIA } from "@/app/data/iglesia";
+import { esc, exportarPdf } from "@/src/utils/exportPdf";
 import { crearTurno, actualizarTurno, eliminarTurno } from "./turnos-actions";
 
 type Equipo = { id: string; nombre: string };
@@ -130,13 +130,15 @@ function mesGrid(iso: string): string[][] {
   }
   return semanas;
 }
-function esc(s: string) {
-  return (s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+/** CSS específico de la planilla de turnos (el esqueleto lo aporta exportPdf). */
+const CSS_TURNOS_PDF = `
+  table{width:100%;border-collapse:collapse;margin-top:20px;font-size:11px;table-layout:fixed}
+  th,td{border:1px solid #dbe3ef;padding:7px 8px;vertical-align:top}
+  thead th{background:#1e3a8a;color:#fff;text-align:center;font-size:10px;text-transform:uppercase}
+  th.eq{background:#eef4ff;color:#1e3a8a;text-align:left;font-weight:800;width:120px}
+  .p{font-weight:600;padding:1px 0}
+  .r{color:#64748b;font-weight:400}
+`;
 
 export default function TurnosModule() {
   const supabase = getDb();
@@ -307,25 +309,8 @@ export default function TurnosModule() {
   }
 
   function exportar() {
-    const win = window.open("", "_blank", "width=1000,height=1000");
-    if (!win) {
-      setMsg({
-        ok: false,
-        text: "Permite las ventanas emergentes para exportar la planilla.",
-      });
-      return;
-    }
-    win.document.write(construirPlanilla());
-    win.document.close();
-  }
-
-  /** Planilla semanal (equipos × días) para imprimir / PDF. */
-  function construirPlanilla() {
     const headDias = dias
-      .map(
-        (d, i) =>
-          `<th>${DIAS[i]} ${diaNum(d)}</th>`,
-      )
+      .map((d, i) => `<th>${DIAS[i]} ${diaNum(d)}</th>`)
       .join("");
     const rows = equipos
       .map((eq) => {
@@ -347,44 +332,26 @@ export default function TurnosModule() {
         return `<tr><th class="eq">${esc(eq.nombre)}</th>${celdas}</tr>`;
       })
       .join("");
-
-    return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8" />
-<title>Planilla de Turnos · ${esc(IGLESIA.nombreCorto)}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;background:#fff;padding:28px}
-  .head{display:flex;align-items:center;gap:16px;border-bottom:4px solid #1e3a8a;padding-bottom:16px}
-  .head img{height:60px}
-  .eyebrow{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#2563eb}
-  .head h1{font-size:20px;font-weight:800;margin-top:3px}
-  .head .sub{margin-top:3px;font-size:13px;color:#475569}
-  table{width:100%;border-collapse:collapse;margin-top:20px;font-size:11px;table-layout:fixed}
-  th,td{border:1px solid #dbe3ef;padding:7px 8px;vertical-align:top}
-  thead th{background:#1e3a8a;color:#fff;text-align:center;font-size:10px;text-transform:uppercase}
-  th.eq{background:#eef4ff;color:#1e3a8a;text-align:left;font-weight:800;width:120px}
-  .p{font-weight:600;padding:1px 0}
-  .r{color:#64748b;font-weight:400}
-  .muted{color:#cbd5e1}
-  .foot{margin-top:22px;text-align:center;font-size:11px;color:#94a3b8}
-  @page{size:landscape;margin:10mm}
-  @media print{body{padding:0}}
-</style></head>
-<body>
-  <div class="head">
-    <img src="${esc(LOGO_URL)}" alt="Logo" />
-    <div>
-      <div class="eyebrow">${esc(IGLESIA.nombre)}</div>
-      <h1>Planilla de Turnos y Servidores</h1>
-      <div class="sub">Semana del ${esc(rangoSemanaTxt(dias))}</div>
-    </div>
-  </div>
-  <table>
-    <thead><tr><th class="eq">Equipo</th>${headDias}</tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <div class="foot">${esc(IGLESIA.nombre)} · ${esc(IGLESIA.dominio)}</div>
-  <script>window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print();},350)});</script>
-</body></html>`;
+    const cuerpo = `<table>
+      <thead><tr><th class="eq">Equipo</th>${headDias}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+    const ok = exportarPdf({
+      titulo: "Planilla de Turnos",
+      encabezado: "Planilla de Turnos y Servidores",
+      subtitulo: `Semana del ${rangoSemanaTxt(dias)}`,
+      cuerpo,
+      estilos: CSS_TURNOS_PDF,
+      orientacion: "horizontal",
+      ancho: 1400,
+      margenMm: 10,
+    });
+    if (!ok) {
+      setMsg({
+        ok: false,
+        text: "Permite las ventanas emergentes para exportar la planilla.",
+      });
+    }
   }
 
   const semanas = useMemo(() => mesGrid(ancla), [ancla]);

@@ -29,7 +29,7 @@ import {
 } from "@/app/components/icons";
 import { getDb } from "./db";
 import ComprobanteUploader from "./ComprobanteUploader";
-import { LOGO_URL, IGLESIA } from "@/app/data/iglesia";
+import { esc, exportarPdf } from "@/src/utils/exportPdf";
 import {
   crearTransaccion,
   actualizarTransaccion,
@@ -129,14 +129,6 @@ function desdeDeRango(rango: string): string {
   return "";
 }
 
-function esc(s: string) {
-  return (s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 function desdeDB(r: FilaDB): Trx {
   return {
     id: String(r.id),
@@ -150,38 +142,8 @@ function desdeDB(r: FilaDB): Trx {
   };
 }
 
-/** Reporte de balance para imprimir / guardar como PDF. */
-function balanceHTML(
-  filas: Trx[],
-  periodo: string,
-  ingresos: number,
-  egresos: number,
-) {
-  const balance = ingresos - egresos;
-  const rows = filas
-    .map(
-      (t) => `<tr>
-      <td>${esc(fmtFecha(t.fecha))}</td>
-      <td><span class="tag ${t.tipo}">${t.tipo === "ingreso" ? "Ingreso" : "Egreso"}</span></td>
-      <td>${esc(t.categoria)}</td>
-      <td>${t.descripcion ? esc(t.descripcion) : "<span class='muted'>—</span>"}</td>
-      <td>${esc(t.metodo_pago || "—")}</td>
-      <td class="num ${t.tipo}">${t.tipo === "egreso" ? "-" : ""}${esc(clp(t.monto))}</td>
-    </tr>`,
-    )
-    .join("");
-
-  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8" />
-<title>Balance · ${esc(IGLESIA.nombreCorto)}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;background:#fff;padding:32px}
-  .wrap{max-width:900px;margin:0 auto}
-  .head{display:flex;align-items:center;gap:18px;border-bottom:4px solid #1e3a8a;padding-bottom:18px}
-  .head img{height:66px}
-  .eyebrow{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#2563eb}
-  .head h1{font-size:22px;font-weight:800;margin-top:3px}
-  .head .sub{margin-top:4px;font-size:13px;color:#475569}
+/** CSS específico del balance (el esqueleto lo aporta exportPdf). */
+const CSS_FINANZAS_PDF = `
   .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
   .kpi{border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px}
   .kpi .l{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8}
@@ -197,36 +159,7 @@ function balanceHTML(
   .num.ingreso{color:#059669}.num.egreso{color:#dc2626}
   .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700}
   .tag.ingreso{background:#ecfdf5;color:#059669}.tag.egreso{background:#fef2f2;color:#dc2626}
-  .muted{color:#94a3b8}
-  .foot{margin-top:26px;text-align:center;font-size:11px;color:#94a3b8}
-  @page{margin:12mm}
-  @media print{body{padding:0}thead{display:table-header-group}tr{break-inside:avoid}}
-</style></head>
-<body><div class="wrap">
-  <div class="head">
-    <img src="${esc(LOGO_URL)}" alt="Logo" />
-    <div>
-      <div class="eyebrow">${esc(IGLESIA.nombre)}</div>
-      <h1>Rendición de Cuentas · Balance</h1>
-      <div class="sub">Periodo: ${esc(periodo)} · Documento confidencial</div>
-    </div>
-  </div>
-  <div class="kpis">
-    <div class="kpi"><div class="l">Total Ingresos</div><div class="v in">${esc(clp(ingresos))}</div></div>
-    <div class="kpi"><div class="l">Total Egresos</div><div class="v eg">${esc(clp(egresos))}</div></div>
-    <div class="kpi"><div class="l">Balance Neto</div><div class="v ${balance >= 0 ? "pos" : "neg"}">${esc(clp(balance))}</div></div>
-  </div>
-  <table>
-    <thead><tr>
-      <th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th>Método</th><th>Monto</th>
-    </tr></thead>
-    <tbody>${rows || '<tr><td colspan="6" class="muted" style="padding:20px;text-align:center">Sin movimientos en el periodo.</td></tr>'}</tbody>
-  </table>
-  <div class="foot">${esc(IGLESIA.nombre)} · ${esc(IGLESIA.dominio)}</div>
-</div>
-<script>window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print();},350)});</script>
-</body></html>`;
-}
+`;
 
 export default function FinanzasModule() {
   const supabase = getDb();
@@ -401,19 +334,46 @@ export default function FinanzasModule() {
   }
 
   function exportar() {
-    const win = window.open("", "_blank", "width=940,height=1000");
-    if (!win) {
+    const periodo = RANGOS.find((r) => r.id === rango)?.label ?? "Histórico";
+    const balance = kpis.ingresos - kpis.egresos;
+    const rows = filtradas
+      .map(
+        (t) => `<tr>
+        <td>${esc(fmtFecha(t.fecha))}</td>
+        <td><span class="tag ${t.tipo}">${t.tipo === "ingreso" ? "Ingreso" : "Egreso"}</span></td>
+        <td>${esc(t.categoria)}</td>
+        <td>${t.descripcion ? esc(t.descripcion) : "<span class='muted'>—</span>"}</td>
+        <td>${esc(t.metodo_pago || "—")}</td>
+        <td class="num ${t.tipo}">${t.tipo === "egreso" ? "-" : ""}${esc(clp(t.monto))}</td>
+      </tr>`,
+      )
+      .join("");
+    const cuerpo = `<div class="kpis">
+      <div class="kpi"><div class="l">Total Ingresos</div><div class="v in">${esc(clp(kpis.ingresos))}</div></div>
+      <div class="kpi"><div class="l">Total Egresos</div><div class="v eg">${esc(clp(kpis.egresos))}</div></div>
+      <div class="kpi"><div class="l">Balance Neto</div><div class="v ${balance >= 0 ? "pos" : "neg"}">${esc(clp(balance))}</div></div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th>Método</th><th>Monto</th>
+      </tr></thead>
+      <tbody>${rows || '<tr><td colspan="6" class="muted" style="padding:20px;text-align:center">Sin movimientos en el periodo.</td></tr>'}</tbody>
+    </table>`;
+    const ok = exportarPdf({
+      titulo: "Balance",
+      encabezado: "Rendición de Cuentas · Balance",
+      subtitulo: `Periodo: ${periodo} · Documento confidencial`,
+      cuerpo,
+      estilos: CSS_FINANZAS_PDF,
+      ancho: 900,
+      margenMm: 12,
+    });
+    if (!ok) {
       setMsg({
         ok: false,
         text: "Permite las ventanas emergentes para exportar el balance.",
       });
-      return;
     }
-    const periodo = RANGOS.find((r) => r.id === rango)?.label ?? "Histórico";
-    win.document.write(
-      balanceHTML(filtradas, periodo, kpis.ingresos, kpis.egresos),
-    );
-    win.document.close();
   }
 
   const periodoCorto = RANGOS.find((r) => r.id === rango)?.corto ?? "";

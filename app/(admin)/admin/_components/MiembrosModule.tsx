@@ -27,7 +27,7 @@ import {
   SearchIcon,
 } from "@/app/components/icons";
 import { getDb } from "./db";
-import { LOGO_URL, IGLESIA } from "@/app/data/iglesia";
+import { esc, exportarPdf } from "@/src/utils/exportPdf";
 import FirmaCanvas from "./FirmaCanvas";
 import {
   crearMiembro,
@@ -133,91 +133,16 @@ function edad(iso: string): number | null {
   if (m < 0 || (m === 0 && n.getDate() < b.getDate())) a--;
   return a >= 0 && a < 130 ? a : null;
 }
-function esc(s: string) {
-  return (s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-/** Documento HTML limpio de la ficha para imprimir / guardar como PDF. */
-function fichaHTML(m: Miembro): string {
-  const e = edad(m.fecha_nacimiento);
-  const nac = m.fecha_nacimiento
-    ? `${fmtFecha(m.fecha_nacimiento)}${e != null ? ` · ${e} años` : ""}`
-    : "—";
-  const row = (label: string, val: string) =>
-    `<div class="row"><div class="lbl">${esc(label)}</div><div class="val">${
-      val ? esc(val) : "<span class='muted'>—</span>"
-    }</div></div>`;
-  const firma = m.firma?.startsWith("data:image")
-    ? `<img class="firma" src="${m.firma}" alt="Firma" />`
-    : `<div class="muted" style="padding:24px 0">Sin firma registrada</div>`;
-
-  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8" />
-<title>Ficha · ${esc(m.nombre_completo)}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;background:#fff;padding:32px}
-  .wrap{max-width:780px;margin:0 auto}
-  .head{display:flex;align-items:center;gap:18px;border-bottom:4px solid #1e3a8a;padding-bottom:18px}
-  .head img{height:66px}
-  .eyebrow{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#2563eb}
-  .head h1{font-size:22px;font-weight:800;margin-top:3px}
-  .head .sub{margin-top:4px;font-size:13px;color:#475569}
+/** CSS específico de la ficha (el esqueleto lo aporta exportPdf). */
+const CSS_MIEMBROS_PDF = `
   h2{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#1e3a8a;margin:24px 0 8px;border-bottom:1px solid #e2e8f0;padding-bottom:5px}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px}
   .row{padding:6px 0;border-bottom:1px dashed #eef2f7}
   .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8}
   .val{font-size:14px;font-weight:600;margin-top:1px}
-  .muted{color:#94a3b8;font-weight:400}
   .firma{max-height:120px;border:1px solid #e2e8f0;border-radius:10px;padding:6px;background:#fff}
   .firmaBox{margin-top:8px}
-  .foot{margin-top:26px;text-align:center;font-size:11px;color:#94a3b8}
-  @page{margin:14mm}
-  @media print{body{padding:0}}
-</style></head>
-<body><div class="wrap">
-  <div class="head">
-    <img src="${esc(LOGO_URL)}" alt="Logo" />
-    <div>
-      <div class="eyebrow">${esc(IGLESIA.nombre)}</div>
-      <h1>Ficha de Miembro</h1>
-      <div class="sub">Registro Pastoral · Documento confidencial</div>
-    </div>
-  </div>
-
-  <h2>Datos personales y de contacto</h2>
-  <div class="grid">
-    ${row("Nombre completo", m.nombre_completo)}
-    ${row("RUT", m.rut)}
-    ${row("Teléfono", m.telefono)}
-    ${row("Correo electrónico", m.correo)}
-    ${row("Fecha de nacimiento / Edad", nac)}
-    ${row("Dirección", m.direccion)}
-  </div>
-
-  <h2>Ficha médica y de emergencia</h2>
-  <div class="grid">
-    ${row("Tipo de sangre", m.tipo_sangre)}
-    ${row("Contacto de emergencia", m.contacto_emergencia_nombre)}
-    ${row("Teléfono de emergencia", m.contacto_emergencia_telefono)}
-  </div>
-  ${row("Observaciones de salud (alergias, condiciones, medicamentos)", m.salud)}
-
-  <h2>Conformidad</h2>
-  <p style="font-size:12px;color:#475569;line-height:1.5">
-    El firmante declara que los datos entregados son verídicos y autoriza su
-    registro para fines pastorales y de contacto de la iglesia.
-  </p>
-  <div class="firmaBox">${firma}</div>
-
-  <div class="foot">${esc(IGLESIA.nombre)} · ${esc(IGLESIA.dominio)}</div>
-</div>
-<script>window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print();},350)});</script>
-</body></html>`;
-}
+`;
 
 export default function MiembrosModule() {
   const supabase = getDb();
@@ -356,16 +281,54 @@ export default function MiembrosModule() {
   }
 
   function exportar(m: Miembro) {
-    const win = window.open("", "_blank", "width=880,height=1000");
-    if (!win) {
+    const e = edad(m.fecha_nacimiento);
+    const nac = m.fecha_nacimiento
+      ? `${fmtFecha(m.fecha_nacimiento)}${e != null ? ` · ${e} años` : ""}`
+      : "—";
+    const row = (label: string, val: string) =>
+      `<div class="row"><div class="lbl">${esc(label)}</div><div class="val">${
+        val ? esc(val) : "<span class='muted'>—</span>"
+      }</div></div>`;
+    const firma = m.firma?.startsWith("data:image")
+      ? `<img class="firma" src="${m.firma}" alt="Firma" />`
+      : `<div class="muted" style="padding:24px 0">Sin firma registrada</div>`;
+    const cuerpo = `<h2>Datos personales y de contacto</h2>
+    <div class="grid">
+      ${row("Nombre completo", m.nombre_completo)}
+      ${row("RUT", m.rut)}
+      ${row("Teléfono", m.telefono)}
+      ${row("Correo electrónico", m.correo)}
+      ${row("Fecha de nacimiento / Edad", nac)}
+      ${row("Dirección", m.direccion)}
+    </div>
+    <h2>Ficha médica y de emergencia</h2>
+    <div class="grid">
+      ${row("Tipo de sangre", m.tipo_sangre)}
+      ${row("Contacto de emergencia", m.contacto_emergencia_nombre)}
+      ${row("Teléfono de emergencia", m.contacto_emergencia_telefono)}
+    </div>
+    ${row("Observaciones de salud (alergias, condiciones, medicamentos)", m.salud)}
+    <h2>Conformidad</h2>
+    <p style="font-size:12px;color:#475569;line-height:1.5">
+      El firmante declara que los datos entregados son verídicos y autoriza su
+      registro para fines pastorales y de contacto de la iglesia.
+    </p>
+    <div class="firmaBox">${firma}</div>`;
+    const ok = exportarPdf({
+      titulo: `Ficha · ${m.nombre_completo}`,
+      encabezado: "Ficha de Miembro",
+      subtitulo: "Registro Pastoral · Documento confidencial",
+      cuerpo,
+      estilos: CSS_MIEMBROS_PDF,
+      ancho: 780,
+      margenMm: 14,
+    });
+    if (!ok) {
       setMsg({
         ok: false,
         text: "Permite las ventanas emergentes para exportar la ficha.",
       });
-      return;
     }
-    win.document.write(fichaHTML(m));
-    win.document.close();
   }
 
   return (

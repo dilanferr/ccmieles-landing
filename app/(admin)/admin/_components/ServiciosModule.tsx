@@ -25,7 +25,7 @@ import {
   DownloadIcon,
 } from "@/app/components/icons";
 import { getDb } from "./db";
-import { LOGO_URL, IGLESIA } from "@/app/data/iglesia";
+import { esc, exportarPdf } from "@/src/utils/exportPdf";
 import {
   crearServicio,
   actualizarServicio,
@@ -101,14 +101,6 @@ function desdeDB(r: FilaDB): Servicio {
 /* ================= Exportación de la pauta (ventana de impresión) ================= */
 
 /** Escapa texto para insertarlo de forma segura en el HTML de impresión. */
-function esc(s: string) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 const MESES = [
   "enero", "febrero", "marzo", "abril", "mayo", "junio",
   "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
@@ -136,38 +128,8 @@ function rangoSemana(): string {
     : `Semana del Lunes ${d1} de ${cap(m1)} al Domingo ${d2} de ${cap(m2)}, ${anio}`;
 }
 
-/** Documento HTML limpio y autocontenido para imprimir / guardar como PDF. */
-function construirHTML(filas: Servicio[], rango: string): string {
-  const filaMuted = '<span style="color:#94a3b8">—</span>';
-  const rows = filas
-    .map((s) => {
-      const fecha = s.fecha ? esc(fmtFecha(s.fecha)) : filaMuted;
-      const hora = s.hora ? esc(s.hora) : filaMuted;
-      const enc = s.encargado
-        ? esc(s.encargado)
-        : '<span style="color:#94a3b8">Sin asignar</span>';
-      return `<tr>
-        <td><span class="pill">${esc(s.dia)}</span></td>
-        <td>${fecha}</td>
-        <td>${hora}</td>
-        <td class="act">${esc(s.actividad)}</td>
-        <td>${enc}</td>
-      </tr>`;
-    })
-    .join("");
-
-  return `<!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8" />
-<title>Pauta de Servicios · ${esc(IGLESIA.nombreCorto)}</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;background:#fff;padding:32px}
-  .wrap{max-width:820px;margin:0 auto}
-  .head{display:flex;align-items:center;gap:20px;border-bottom:4px solid #1e3a8a;padding-bottom:20px}
-  .head img{height:74px;width:auto}
-  .eyebrow{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#2563eb}
-  .head h1{font-size:23px;font-weight:800;margin-top:4px}
-  .sem{margin-top:6px;font-size:14px;font-weight:600;color:#334155}
+/** CSS específico de la pauta (el esqueleto lo aporta exportPdf). */
+const CSS_SERVICIOS_PDF = `
   table{width:100%;border-collapse:collapse;margin-top:26px;font-size:13px}
   thead th{background:#1e3a8a;color:#fff;text-align:left;padding:11px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
   thead th:first-child{border-radius:8px 0 0 0}
@@ -176,30 +138,7 @@ function construirHTML(filas: Servicio[], rango: string): string {
   tbody tr:nth-child(even){background:#f8fafc}
   .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:#eff6ff;color:#1d4ed8}
   .act{font-weight:700}
-  .foot{margin-top:26px;text-align:center;font-size:11px;color:#94a3b8}
-  @page{margin:14mm}
-  @media print{body{padding:0}thead{display:table-header-group}tr{break-inside:avoid}}
-</style></head>
-<body><div class="wrap">
-  <div class="head">
-    <img src="${esc(LOGO_URL)}" alt="Logo ${esc(IGLESIA.nombre)}" />
-    <div>
-      <div class="eyebrow">${esc(IGLESIA.nombre)}</div>
-      <h1>Pauta de Servicios de la Semana</h1>
-      <div class="sem">${esc(rango)}</div>
-    </div>
-  </div>
-  <table>
-    <thead><tr>
-      <th>Día</th><th>Fecha</th><th>Hora</th><th>Actividad / Servicio</th><th>Encargado</th>
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <div class="foot">${esc(IGLESIA.nombre)} · ${esc(IGLESIA.dominio)}</div>
-</div>
-<script>window.addEventListener('load',function(){setTimeout(function(){window.focus();window.print();},250)});</script>
-</body></html>`;
-}
+`;
 
 export default function ServiciosModule() {
   const supabase = getDb();
@@ -343,16 +282,44 @@ export default function ServiciosModule() {
 
   /** Abre una ventana con la pauta lista para imprimir o guardar como PDF. */
   function exportarPauta() {
-    const win = window.open("", "_blank", "width=920,height=1000");
-    if (!win) {
+    const filaMuted = '<span style="color:#94a3b8">—</span>';
+    const rows = ordenadas
+      .map((s) => {
+        const fecha = s.fecha ? esc(fmtFecha(s.fecha)) : filaMuted;
+        const hora = s.hora ? esc(s.hora) : filaMuted;
+        const enc = s.encargado
+          ? esc(s.encargado)
+          : '<span style="color:#94a3b8">Sin asignar</span>';
+        return `<tr>
+          <td><span class="pill">${esc(s.dia)}</span></td>
+          <td>${fecha}</td>
+          <td>${hora}</td>
+          <td class="act">${esc(s.actividad)}</td>
+          <td>${enc}</td>
+        </tr>`;
+      })
+      .join("");
+    const cuerpo = `<table>
+      <thead><tr>
+        <th>Día</th><th>Fecha</th><th>Hora</th><th>Actividad / Servicio</th><th>Encargado</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+    const ok = exportarPdf({
+      titulo: "Pauta de Servicios",
+      encabezado: "Pauta de Servicios de la Semana",
+      subtitulo: rangoSemana(),
+      cuerpo,
+      estilos: CSS_SERVICIOS_PDF,
+      ancho: 820,
+      margenMm: 14,
+    });
+    if (!ok) {
       setMsg({
         ok: false,
         text: "Permite las ventanas emergentes para exportar la pauta.",
       });
-      return;
     }
-    win.document.write(construirHTML(ordenadas, rangoSemana()));
-    win.document.close();
   }
 
   return (
