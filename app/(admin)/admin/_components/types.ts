@@ -7,6 +7,7 @@ export type TabId =
   | "eventos"
   | "servicios"
   | "turnos"
+  | "inventario"
   | "miembros"
   | "finanzas"
   | "peticiones"
@@ -23,4 +24,5 @@ export type Rol =
   | "tesorero"
   | "lider"
   | "secretaria"
-  | "intercesion";
+  | "intercesion"
+  | "logistica";

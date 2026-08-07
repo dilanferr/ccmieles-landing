@@ -20,6 +20,7 @@ import {
   WalletIcon,
   LockIcon,
   BookIcon,
+  BoxIcon,
   ChevronLeft,
   CloseIcon,
   type Icon,
@@ -41,6 +42,7 @@ import SeoModule from "./SeoModule";
 import ImpactoModule from "./ImpactoModule";
 import UsuariosModule from "./UsuariosModule";
 import AuditoriaModule from "./AuditoriaModule";
+import InventarioModule from "./InventarioModule";
 
 type NavItem = { id: TabId; label: string; Icon: Icon; soon?: boolean };
 
@@ -48,9 +50,10 @@ type NavItem = { id: TabId; label: string; Icon: Icon; soon?: boolean };
    admin/pastor ven TODO. El resto solo las pestañas listadas aquí. */
 const ROLES_TOTALES: Rol[] = ["admin", "pastor"];
 const ACCESO_EXTRA: Partial<Record<TabId, Rol[]>> = {
-  dashboard: ["tesorero", "lider", "secretaria", "intercesion"],
-  servicios: ["lider", "secretaria"],
-  turnos: ["lider"],
+  dashboard: ["tesorero", "lider", "secretaria", "intercesion", "logistica"],
+  servicios: ["lider", "secretaria", "logistica"],
+  turnos: ["lider", "logistica"],
+  inventario: ["logistica"],
   miembros: ["secretaria"],
   finanzas: ["tesorero"],
   peticiones: ["intercesion"],
@@ -81,6 +84,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { id: "eventos", label: "Eventos y Cultos", Icon: CalendarIcon },
       { id: "servicios", label: "Servicios semanales", Icon: GridIcon },
       { id: "turnos", label: "Turnos y Servidores", Icon: UsersIcon },
+      { id: "inventario", label: "Inventario y Bienes", Icon: BoxIcon },
       { id: "peticiones", label: "Peticiones", Icon: PrayingHands },
     ],
   },
@@ -333,6 +337,7 @@ export function AdminShell({
             {tab === "eventos" && <EventosModule />}
             {tab === "servicios" && <ServiciosModule />}
             {tab === "turnos" && <TurnosModule />}
+            {tab === "inventario" && <InventarioModule />}
             {tab === "miembros" && <MiembrosModule />}
             {tab === "finanzas" && <FinanzasModule />}
             {tab === "peticiones" && <PeticionesModule />}

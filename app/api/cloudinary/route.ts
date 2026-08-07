@@ -4,7 +4,7 @@ import { createServerSupabase } from "@/src/utils/supabase-server";
 
 // Roles autorizados (M3). Subir: contenido (admin/pastor) + comprobantes de
 // tesorería (tesorero). Listar la biblioteca de medios: solo admin/pastor.
-const ROLES_SUBIDA = ["admin", "pastor", "tesorero"];
+const ROLES_SUBIDA = ["admin", "pastor", "tesorero", "logistica"];
 const ROLES_LISTADO = ["admin", "pastor"];
 
 /**

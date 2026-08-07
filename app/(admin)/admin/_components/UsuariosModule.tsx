@@ -33,6 +33,11 @@ const ROLES: { id: Rol; label: string; desc: string }[] = [
   { id: "lider", label: "Líder / Servidor", desc: "Dashboard + Servicios + Turnos" },
   { id: "secretaria", label: "Secretaría", desc: "Dashboard + Fichas + Servicios" },
   { id: "intercesion", label: "Intercesión", desc: "Dashboard + Peticiones" },
+  {
+    id: "logistica",
+    label: "Logística",
+    desc: "Dashboard + Turnos + Servicios + Inventario",
+  },
 ];
 const ROL_LABEL: Record<Rol, string> = {
   admin: "Admin",
@@ -41,6 +46,7 @@ const ROL_LABEL: Record<Rol, string> = {
   lider: "Líder / Servidor",
   secretaria: "Secretaría",
   intercesion: "Intercesión",
+  logistica: "Logística",
 };
 const ROL_COLOR: Record<Rol, string> = {
   admin: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
@@ -52,6 +58,8 @@ const ROL_COLOR: Record<Rol, string> = {
     "bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/40 dark:text-fuchsia-300",
   intercesion:
     "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300",
+  logistica:
+    "bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300",
 };
 
 const SEL_CLS =

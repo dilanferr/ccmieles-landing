@@ -22,6 +22,7 @@ const ROLES: Rol[] = [
   "lider",
   "secretaria",
   "intercesion",
+  "logistica",
 ];
 
 export type Resultado = { ok: boolean; error?: string };

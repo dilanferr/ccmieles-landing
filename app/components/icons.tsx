@@ -348,6 +348,14 @@ export const FileIcon: Icon = (p) => (
   </svg>
 );
 
+export const BoxIcon: Icon = (p) => (
+  <svg {...base} {...p}>
+    <path d="M21 8 12 3 3 8v8l9 5 9-5V8Z" />
+    <path d="m3 8 9 5 9-5" />
+    <path d="M12 13v8" />
+  </svg>
+);
+
 /** Claves de icono usadas en datos (mantiene la config serializable). */
 export type IconName =
   | "heart"
