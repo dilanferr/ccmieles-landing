@@ -6,7 +6,7 @@ import EquipoGrid from "@/app/components/ministry/EquipoGrid";
 import CtaFinal from "@/app/components/ministry/CtaFinal";
 import Reveal from "@/app/components/Reveal";
 import { getSettings } from "@/src/utils/settings";
-import { MegaphoneIcon, HeartIcon, UsersIcon } from "@/app/components/icons";
+import { MegaphoneIcon, HeartIcon } from "@/app/components/icons";
 import { NAV_GRUPOS, getGrupo } from "@/app/data/iglesia";
 
 export const metadata: Metadata = {

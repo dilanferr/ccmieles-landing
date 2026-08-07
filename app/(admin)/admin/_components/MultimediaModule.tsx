@@ -66,7 +66,31 @@ export default function MultimediaModule() {
   }
 
   useEffect(() => {
-    cargar();
+    let vivo = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/cloudinary", { cache: "no-store" });
+        const json = await res.json();
+        if (!vivo) return;
+        if (!res.ok) {
+          setError(
+            json.error === "missing-credentials"
+              ? "Faltan las credenciales de Cloudinary (CLOUDINARY_API_KEY / API_SECRET) en el servidor."
+              : "No se pudo conectar con Cloudinary.",
+          );
+        } else {
+          setUsage(json.usage);
+          setRecursos(json.resources ?? []);
+        }
+      } catch {
+        if (vivo) setError("No se pudo conectar con Cloudinary.");
+      } finally {
+        if (vivo) setLoading(false);
+      }
+    })();
+    return () => {
+      vivo = false;
+    };
   }, []);
 
   async function subir(files: File[]) {

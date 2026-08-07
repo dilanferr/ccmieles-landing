@@ -6,10 +6,11 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    // L1 (deuda técnica pendiente): degradado a warning para no romper el CI.
-    // Son patrones preexistentes de efectos con setState; se refactorizarán aparte.
+    // L1 resuelto: los efectos con setState sincrónico se refactorizaron
+    // (IIFE async / reinicio en render). La regla vuelve a ser error; las
+    // excepciones legítimas (p. ej. init desde localStorage) usan disable local.
     rules: {
-      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/set-state-in-effect": "error",
     },
   },
   // Override default ignores of eslint-config-next.

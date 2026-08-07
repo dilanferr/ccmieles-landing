@@ -142,11 +142,15 @@ export function AdminShell({
   const [palette, setPalette] = useState(false);
   const [ready, setReady] = useState(false);
 
-  // Recupera preferencias guardadas.
+  // Recupera preferencias desde localStorage tras el montaje. Aquí setState en
+  // efecto ES el patrón correcto: localStorage no existe en SSR y `ready` evita
+  // el desajuste de hidratación. Por eso se exime la regla en este bloque.
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     setCollapsed(localStorage.getItem("mieles.admin.collapsed") === "1");
     setDark(localStorage.getItem("mieles.admin.theme") === "dark");
     setReady(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
   useEffect(() => {
     if (ready) localStorage.setItem("mieles.admin.collapsed", collapsed ? "1" : "0");

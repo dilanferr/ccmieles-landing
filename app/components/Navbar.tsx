@@ -17,13 +17,16 @@ export default function Navbar() {
   const [gruposMobile, setGruposMobile] = useState(false); // acordeón móvil
   const navRef = useRef<HTMLUListElement>(null);
 
-  // Cierra todo al cambiar de ruta.
-  useEffect(() => {
+  // Cierra todos los menús al cambiar de ruta. Patrón de "reinicio en render"
+  // (React docs) en vez de un efecto con setState sincrónico.
+  const [rutaPrevia, setRutaPrevia] = useState(pathname);
+  if (pathname !== rutaPrevia) {
+    setRutaPrevia(pathname);
     setOpen(false);
     setGrupos(false);
     setMas(false);
     setGruposMobile(false);
-  }, [pathname]);
+  }
 
   // Bloquea el scroll del body con el menú móvil abierto.
   useEffect(() => {

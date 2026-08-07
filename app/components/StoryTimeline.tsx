@@ -18,7 +18,7 @@ export default function StoryTimeline({ items }: { items: Hito[] }) {
         aria-hidden
         className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-linear-to-b from-blue-600 via-sky-400 to-blue-200 sm:left-[9px]"
       />
-      {items.map((h, i) => (
+      {items.map((h) => (
         <motion.li
           key={h.titulo}
           initial={reduce ? false : { opacity: 0, y: 24 }}

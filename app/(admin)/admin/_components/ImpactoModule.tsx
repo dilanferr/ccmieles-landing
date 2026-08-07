@@ -64,12 +64,21 @@ export default function ImpactoModule() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/impacto?days=${days}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((json) => setD(json))
-      .catch(() => setD(null))
-      .finally(() => setLoading(false));
+    let vivo = true;
+    (async () => {
+      try {
+        const r = await fetch(`/api/impacto?days=${days}`, { cache: "no-store" });
+        const json = await r.json();
+        if (vivo) setD(json);
+      } catch {
+        if (vivo) setD(null);
+      } finally {
+        if (vivo) setLoading(false);
+      }
+    })();
+    return () => {
+      vivo = false;
+    };
   }, [days]);
 
   const header = (

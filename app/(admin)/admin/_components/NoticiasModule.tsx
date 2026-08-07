@@ -67,7 +67,19 @@ export default function NoticiasModule() {
   }
 
   useEffect(() => {
-    cargar();
+    let vivo = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("noticias")
+        .select("*")
+        .order("id", { ascending: false });
+      if (!vivo) return;
+      if (!error && data) setLista(data as Noticia[]);
+      setLoading(false);
+    })();
+    return () => {
+      vivo = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

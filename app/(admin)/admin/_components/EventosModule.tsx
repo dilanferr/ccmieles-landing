@@ -149,7 +149,19 @@ export default function EventosModule() {
   }
 
   useEffect(() => {
-    cargar();
+    let vivo = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("eventos")
+        .select("*")
+        .order("fecha_evento", { ascending: false });
+      if (!vivo) return;
+      if (!error && data) setLista(data as Evento[]);
+      setLoading(false);
+    })();
+    return () => {
+      vivo = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

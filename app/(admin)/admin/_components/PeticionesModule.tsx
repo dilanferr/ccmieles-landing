@@ -55,19 +55,21 @@ export default function PeticionesModule() {
   const [estado, setEstado] = useState<EstadoFiltro>("todas");
   const [motivo, setMotivo] = useState("");
 
-  async function cargar() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("peticiones_oracion")
-      .select("*")
-      .order("leido", { ascending: true })
-      .order("id", { ascending: false });
-    if (!error && data) setLista(data as Peticion[]);
-    setLoading(false);
-  }
-
   useEffect(() => {
-    cargar();
+    let vivo = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("peticiones_oracion")
+        .select("*")
+        .order("leido", { ascending: true })
+        .order("id", { ascending: false });
+      if (!vivo) return;
+      if (!error && data) setLista(data as Peticion[]);
+      setLoading(false);
+    })();
+    return () => {
+      vivo = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
