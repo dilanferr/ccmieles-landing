@@ -356,6 +356,15 @@ export const BoxIcon: Icon = (p) => (
   </svg>
 );
 
+export const ExchangeIcon: Icon = (p) => (
+  <svg {...base} {...p}>
+    <path d="M4 8h13" />
+    <path d="m14 5 3 3-3 3" />
+    <path d="M20 16H7" />
+    <path d="m10 13-3 3 3 3" />
+  </svg>
+);
+
 /** Claves de icono usadas en datos (mantiene la config serializable). */
 export type IconName =
   | "heart"
