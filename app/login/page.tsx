@@ -3,11 +3,13 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/src/utils/supabase";
 import { LockIcon, MailIcon } from "@/app/components/icons";
+import { IGLESIA, LOGO_URL } from "@/app/data/iglesia";
 
 const inputBase =
-  "w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100";
+  "w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100";
 
 export default function LoginPage() {
   return (
@@ -57,27 +59,56 @@ function LoginForm() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-linear-to-br from-sky-50 via-white to-cyan-50 px-4 py-12">
-      <div className="w-full max-w-md">
-        <Link
-          href="/"
-          className="mb-8 flex flex-col items-center gap-3 text-center"
-        >
-          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-linear-to-br from-sky-500 to-sky-700 text-2xl font-bold text-white shadow-lg shadow-sky-500/25">
-            M
-          </span>
-          <span className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700">
-            Centro Cristiano Mieles
-          </span>
-        </Link>
+    <div className="relative grid min-h-screen place-items-center overflow-hidden bg-linear-to-br from-blue-950 via-blue-900 to-sky-800 px-4 py-10">
+      {/* Ambiente cálido: destellos y textura institucional */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-24 -top-24 h-96 w-96 rounded-full bg-sky-400/25 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-32 -right-16 h-[28rem] w-[28rem] rounded-full bg-amber-400/15 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent_45%)]"
+      />
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-sky-500/5">
+      <div className="relative z-10 w-full max-w-md">
+        {/* Marca */}
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Link
+            href="/"
+            className="grid h-20 w-20 place-items-center rounded-3xl bg-white/95 p-2.5 shadow-xl shadow-blue-950/40 ring-1 ring-white/40 transition-transform hover:scale-105"
+          >
+            <Image
+              src={LOGO_URL}
+              alt={IGLESIA.nombre}
+              width={64}
+              height={64}
+              priority
+              className="h-full w-full object-contain"
+            />
+          </Link>
+          <h1 className="mt-5 text-2xl font-black tracking-tight text-white sm:text-3xl">
+            {IGLESIA.nombre}
+          </h1>
+          <p className="mt-1.5 text-sm font-semibold text-sky-200">
+            Centro de control pastoral y congregacional
+          </p>
+          <p className="mt-1 max-w-xs text-xs leading-relaxed text-sky-100/70">
+            {IGLESIA.ministerio}
+          </p>
+        </div>
+
+        {/* Tarjeta */}
+        <div className="rounded-3xl border border-white/15 bg-white/95 p-7 shadow-2xl shadow-blue-950/30 backdrop-blur-xl sm:p-8">
           <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold text-slate-900">
-              Acceso administración
-            </h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Ingresa para gestionar el contenido de la iglesia.
+            <h2 className="text-xl font-bold text-slate-900">
+              Bienvenido de vuelta
+            </h2>
+            <p className="mt-1.5 text-sm text-slate-500">
+              Ingresa para pastorear el contenido y la comunidad.
             </p>
           </div>
 
@@ -122,7 +153,7 @@ function LoginForm() {
             </div>
 
             {error && (
-              <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+              <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                 {error}
               </p>
             )}
@@ -130,18 +161,25 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-sky-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition-all hover:-translate-y-0.5 hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-full bg-linear-to-r from-blue-700 to-sky-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/30 transition-all hover:-translate-y-0.5 hover:shadow-blue-600/50 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? "Ingresando…" : "Iniciar sesión"}
             </button>
           </form>
         </div>
 
-        <p className="mt-6 text-center text-sm text-slate-500">
-          <Link href="/" className="font-medium text-sky-600 hover:text-sky-700">
+        {/* Pie cálido */}
+        <div className="mt-6 text-center">
+          <Link
+            href="/"
+            className="text-sm font-medium text-sky-200 transition-colors hover:text-white"
+          >
             ← Volver al inicio
           </Link>
-        </p>
+          <p className="mt-3 text-xs text-sky-100/50">
+            «Hay un lugar para ti» · Desde {IGLESIA.anioFundacion} en Quilicura
+          </p>
+        </div>
       </div>
     </div>
   );
