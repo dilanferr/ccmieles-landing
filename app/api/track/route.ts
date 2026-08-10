@@ -7,7 +7,8 @@ import { createPublicClient } from "@/src/utils/supabase-public";
  * Si las tablas no existen, falla en silencio (no rompe el sitio).
  *
  *   POST /api/track
- *   body: { type: "page_view" | "event", path, session_id, referrer?, device?, name?, meta?, duration_ms? }
+ *   body: { type: "page_view" | "event", path, session_id, referrer?, device?,
+ *           name?, meta?, duration_ms?, utm_source?, utm_medium?, utm_campaign? }
  */
 // Filtro de bots/crawlers: aunque Googlebot renderiza JS y puede disparar el
 // tracker, no queremos que infle "visitas" ni "Directo" y sesgue las métricas.
@@ -48,10 +49,16 @@ export async function POST(req: Request) {
         meta: body.meta && typeof body.meta === "object" ? body.meta : {},
       });
     } else {
+      const cap = (v: unknown, n: number) =>
+        v ? String(v).slice(0, n) : null;
       await supabase.from("page_views").insert({
         ...base,
         duration_ms:
           typeof body.duration_ms === "number" ? body.duration_ms : null,
+        // UTM: sólo llegan en la 1ª vista de la sesión (atribución de campañas).
+        utm_source: cap(body.utm_source, 60),
+        utm_medium: cap(body.utm_medium, 60),
+        utm_campaign: cap(body.utm_campaign, 120),
       });
     }
 
