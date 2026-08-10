@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    // Formatos modernos: sirve AVIF (más liviano) con fallback a WebP.
+    formats: ["image/avif", "image/webp"],
     // Autoriza la optimización de imágenes servidas desde Cloudinary.
     remotePatterns: [
       {

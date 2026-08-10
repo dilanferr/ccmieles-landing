@@ -86,7 +86,9 @@ export default function HeroCarousel() {
               src={s.publicId}
               alt=""
               fill
-              preload={i === 0}
+              // La primera slide es el LCP: `priority` fuerza su precarga
+              // (fetchpriority=high + eager). El resto queda lazy por defecto.
+              priority={i === 0}
               sizes="100vw"
               className="object-cover"
             />

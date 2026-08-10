@@ -433,6 +433,10 @@ export default async function Home() {
                     <img
                       src={`https://img.youtube.com/vi/${t.youtubeId}/hqdefault.jpg`}
                       alt={t.titulo}
+                      loading="lazy"
+                      decoding="async"
+                      width={480}
+                      height={360}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-linear-to-t from-blue-950/60 to-transparent" />
