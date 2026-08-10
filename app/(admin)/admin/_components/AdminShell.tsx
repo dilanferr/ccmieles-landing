@@ -21,6 +21,7 @@ import {
   LockIcon,
   BookIcon,
   BoxIcon,
+  UserCheckIcon,
   ChevronLeft,
   CloseIcon,
   type Icon,
@@ -43,6 +44,7 @@ import ImpactoModule from "./ImpactoModule";
 import UsuariosModule from "./UsuariosModule";
 import AuditoriaModule from "./AuditoriaModule";
 import InventarioModule from "./InventarioModule";
+import AsistenciaModule from "./AsistenciaModule";
 
 type NavItem = { id: TabId; label: string; Icon: Icon; soon?: boolean };
 
@@ -53,6 +55,7 @@ const ACCESO_EXTRA: Partial<Record<TabId, Rol[]>> = {
   dashboard: ["tesorero", "lider", "secretaria", "intercesion", "logistica"],
   servicios: ["lider", "secretaria", "logistica"],
   turnos: ["lider", "logistica"],
+  asistencia: ["lider", "secretaria"],
   inventario: ["logistica"],
   miembros: ["secretaria"],
   finanzas: ["tesorero"],
@@ -84,6 +87,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { id: "eventos", label: "Eventos y Cultos", Icon: CalendarIcon },
       { id: "servicios", label: "Servicios semanales", Icon: GridIcon },
       { id: "turnos", label: "Turnos y Servidores", Icon: UsersIcon },
+      { id: "asistencia", label: "Asistencia y Check-in", Icon: UserCheckIcon },
       { id: "inventario", label: "Inventario y Bienes", Icon: BoxIcon },
       { id: "peticiones", label: "Peticiones", Icon: PrayingHands },
     ],
@@ -337,6 +341,7 @@ export function AdminShell({
             {tab === "eventos" && <EventosModule />}
             {tab === "servicios" && <ServiciosModule />}
             {tab === "turnos" && <TurnosModule />}
+            {tab === "asistencia" && <AsistenciaModule />}
             {tab === "inventario" && <InventarioModule />}
             {tab === "miembros" && <MiembrosModule />}
             {tab === "finanzas" && <FinanzasModule />}
