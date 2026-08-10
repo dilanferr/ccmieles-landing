@@ -64,7 +64,9 @@ export function ModuleHeader({
   accion?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex items-start justify-between gap-4">
+    // Mobile-first: título/descripción arriba a lo ancho; las acciones bajan a
+    // su propia fila (flex-wrap). Side-by-side recién desde md.
+    <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div className="flex items-start gap-4">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-slate-800 dark:text-blue-300">
           {icon}
@@ -80,7 +82,11 @@ export function ModuleHeader({
           )}
         </div>
       </div>
-      {accion}
+      {accion && (
+        <div className="flex flex-wrap items-center gap-2 md:shrink-0">
+          {accion}
+        </div>
+      )}
     </div>
   );
 }
