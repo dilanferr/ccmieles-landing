@@ -29,6 +29,7 @@ export function fakeSupabase(
     eq: vi.fn(() => builder),
     select: vi.fn(() => builder),
     is: vi.fn(() => builder),
+    not: vi.fn(() => builder),
     order: vi.fn(() => builder),
     single: vi.fn(() => Promise.resolve(result)),
     maybeSingle: vi.fn(() => Promise.resolve(result)),
