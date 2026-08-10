@@ -9,9 +9,19 @@ import { createPublicClient } from "@/src/utils/supabase-public";
  *   POST /api/track
  *   body: { type: "page_view" | "event", path, session_id, referrer?, device?, name?, meta?, duration_ms? }
  */
+// Filtro de bots/crawlers: aunque Googlebot renderiza JS y puede disparar el
+// tracker, no queremos que infle "visitas" ni "Directo" y sesgue las métricas.
+const BOT_RE =
+  /bot|crawl|spider|slurp|googlebot|bingbot|bingpreview|yandex|baidu|duckduck|applebot|petalbot|facebookexternalhit|whatsapp|telegram|discordbot|linkedinbot|pinterest|embedly|preview|headless|lighthouse|pingdom|monitor|curl|wget|python-requests|axios|gtmetrix|semrush|ahrefs|dataprovider/i;
+
 export async function POST(req: Request) {
   try {
     const h = req.headers;
+    const ua = h.get("user-agent") || "";
+    if (!ua || BOT_RE.test(ua)) {
+      // Descartamos silenciosamente el tráfico no humano.
+      return new Response(null, { status: 204 });
+    }
     const country = h.get("x-vercel-ip-country") || null;
     const rawCity = h.get("x-vercel-ip-city");
     const city = rawCity ? decodeURIComponent(rawCity) : null;

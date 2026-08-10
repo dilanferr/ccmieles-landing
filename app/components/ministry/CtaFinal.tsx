@@ -1,5 +1,6 @@
 import type { HeaderCta } from "../PageHeader";
 import TrackLink from "../TrackLink";
+import ShareButton from "../ShareButton";
 
 /**
  * Bloque de cierre full-width en azul oscuro. Mismo patrón para todos los
@@ -72,6 +73,7 @@ export default function CtaFinal({
                   className="border border-white/30 text-white hover:-translate-y-0.5 hover:bg-white/10"
                 />
               )}
+              <ShareButton className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-6 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-white/10" />
             </div>
           </div>
         </div>

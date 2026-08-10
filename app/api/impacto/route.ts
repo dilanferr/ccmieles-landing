@@ -37,6 +37,7 @@ type ImpactoStats = {
   paginas: { path: string; n: number }[];
   fuentes: { fuente: string; n: number }[];
   ciudades: { ciudad: string; n: number }[];
+  dispositivos: { device: string; n: number }[];
   serie: { key: string; n: number }[];
   motivos: { motivo: string; n: number }[];
 };
@@ -54,6 +55,7 @@ const VACIO: ImpactoStats = {
   paginas: [],
   fuentes: [],
   ciudades: [],
+  dispositivos: [],
   serie: [],
   motivos: [],
 };
@@ -136,21 +138,32 @@ export async function GET(req: Request) {
     .sort((a, b) => b.n - a.n)
     .slice(0, 6);
 
-  // Serie diaria (labels/keys en JS; los conteos vienen del RPC).
+  // Desglose por dispositivo (móvil/escritorio).
+  const DEV_LABEL: Record<string, string> = {
+    mobile: "Móvil",
+    desktop: "Escritorio",
+  };
+  const dispositivos = (s.dispositivos ?? [])
+    .map((x) => ({ device: DEV_LABEL[x.device] ?? "Otro", n: x.n }))
+    .sort((a, b) => b.n - a.n);
+
+  // Serie diaria en hora de Chile (America/Santiago), no UTC. Los conteos
+  // vienen del RPC agrupados por la misma zona; aquí generamos las claves.
   const serieMap: Record<string, number> = Object.fromEntries(
     (s.serie ?? []).map((d) => [d.key, d.n]),
   );
+  const fmtDiaCL = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Santiago",
+  });
+  const fmtLabelCL = new Intl.DateTimeFormat("es-CL", {
+    timeZone: "America/Santiago",
+    day: "2-digit",
+    month: "short",
+  });
   const serie = Array.from({ length: Math.min(days, 30) }, (_, i) => {
     const dt = new Date(now - (Math.min(days, 30) - 1 - i) * 864e5);
-    const key = dt.toISOString().slice(0, 10);
-    return {
-      key,
-      label: new Date(`${key}T12:00:00Z`).toLocaleDateString("es-CL", {
-        day: "2-digit",
-        month: "short",
-      }),
-      n: serieMap[key] ?? 0,
-    };
+    const key = fmtDiaCL.format(dt); // YYYY-MM-DD en hora de Chile
+    return { key, label: fmtLabelCL.format(dt), n: serieMap[key] ?? 0 };
   });
 
   // ---------- Índice de impacto (heurística transparente) ----------
@@ -225,6 +238,7 @@ export async function GET(req: Request) {
     fuentes: fuentesArr,
     motivos: motivosArr,
     ciudades: ciudadesArr,
+    dispositivos,
     serie,
     insights,
     recomendaciones,

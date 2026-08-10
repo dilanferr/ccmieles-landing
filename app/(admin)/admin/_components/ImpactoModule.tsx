@@ -39,6 +39,8 @@ type Data = {
   ministerios: { label: string; n: number }[];
   fuentes: { fuente: string; n: number; pct: number }[];
   motivos: { motivo: string; n: number }[];
+  ciudades: { ciudad: string; n: number }[];
+  dispositivos: { device: string; n: number }[];
   serie: { key: string; label: string; n: number }[];
   insights: string[];
   recomendaciones: string[];
@@ -314,6 +316,53 @@ export default function ImpactoModule() {
           ))}
         </ul>
       </Card>
+
+      {/* Dispositivos + Ciudades */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <Card>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+            Dispositivos
+          </h3>
+          {(() => {
+            const total = d.dispositivos.reduce((a, x) => a + x.n, 0);
+            if (total === 0)
+              return <p className="mt-4 text-sm text-slate-400">Aún sin datos.</p>;
+            return (
+              <ul className="mt-4 space-y-2.5">
+                {d.dispositivos.map((x) => (
+                  <li key={x.device} className="flex items-center gap-3 text-sm">
+                    <span className="w-24 shrink-0 font-medium text-slate-700 dark:text-slate-300">
+                      {x.device}
+                    </span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                      <div
+                        className="h-full rounded-full bg-blue-500"
+                        style={{ width: `${Math.round((x.n / total) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="w-10 shrink-0 text-right text-slate-400">
+                      {Math.round((x.n / total) * 100)}%
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
+        </Card>
+        <Card>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+            Ciudades
+          </h3>
+          {d.ciudades.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-400">Aún sin datos de ubicación.</p>
+          ) : (
+            <Ranking
+              items={d.ciudades.map((c) => ({ label: c.ciudad, n: c.n }))}
+              max={d.ciudades[0]?.n || 1}
+            />
+          )}
+        </Card>
+      </div>
 
       {/* Insights + Recomendaciones */}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
