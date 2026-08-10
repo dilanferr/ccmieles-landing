@@ -43,6 +43,7 @@ type Miembro = {
   correo: string;
   direccion: string;
   fecha_nacimiento: string;
+  fecha_ingreso: string;
   salud: string;
   tipo_sangre: string;
   contacto_emergencia_nombre: string;
@@ -58,6 +59,7 @@ type FilaDB = {
   correo: string | null;
   direccion: string | null;
   fecha_nacimiento: string | null;
+  fecha_ingreso: string | null;
   salud: string | null;
   tipo_sangre: string | null;
   contacto_emergencia_nombre: string | null;
@@ -66,7 +68,7 @@ type FilaDB = {
 };
 
 const COLS =
-  "id, nombre_completo, rut, telefono, correo, direccion, fecha_nacimiento, salud, tipo_sangre, contacto_emergencia_nombre, contacto_emergencia_telefono, firma, creado_at";
+  "id, nombre_completo, rut, telefono, correo, direccion, fecha_nacimiento, fecha_ingreso, salud, tipo_sangre, contacto_emergencia_nombre, contacto_emergencia_telefono, firma, creado_at";
 
 const TIPOS_SANGRE = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -77,6 +79,7 @@ const VACIO = {
   correo: "",
   direccion: "",
   fecha_nacimiento: "",
+  fecha_ingreso: "",
   salud: "",
   tipo_sangre: "",
   contacto_emergencia_nombre: "",
@@ -93,6 +96,7 @@ function desdeDB(r: FilaDB): Miembro {
     correo: r.correo ?? "",
     direccion: r.direccion ?? "",
     fecha_nacimiento: r.fecha_nacimiento ?? "",
+    fecha_ingreso: r.fecha_ingreso ?? "",
     salud: r.salud ?? "",
     tipo_sangre: r.tipo_sangre ?? "",
     contacto_emergencia_nombre: r.contacto_emergencia_nombre ?? "",
@@ -205,7 +209,8 @@ export default function MiembrosModule() {
   }, [lista, q]);
 
   function abrir() {
-    setForm(VACIO);
+    // Nueva ficha: la fecha de ingreso se precarga con hoy (hora local).
+    setForm({ ...VACIO, fecha_ingreso: new Date().toLocaleDateString("en-CA") });
     setEditId(null);
     setMsg(null);
     setModal(true);
@@ -234,6 +239,7 @@ export default function MiembrosModule() {
       correo: form.correo || null,
       direccion: form.direccion || null,
       fecha_nacimiento: form.fecha_nacimiento || null,
+      fecha_ingreso: form.fecha_ingreso || null,
       salud: form.salud || null,
       tipo_sangre: form.tipo_sangre || null,
       contacto_emergencia_nombre: form.contacto_emergencia_nombre || null,
@@ -299,6 +305,7 @@ export default function MiembrosModule() {
       ${row("Teléfono", m.telefono)}
       ${row("Correo electrónico", m.correo)}
       ${row("Fecha de nacimiento / Edad", nac)}
+      ${row("Fecha de ingreso", m.fecha_ingreso ? fmtFecha(m.fecha_ingreso) : "—")}
       ${row("Dirección", m.direccion)}
     </div>
     <h2>Ficha médica y de emergencia</h2>
@@ -526,6 +533,13 @@ export default function MiembrosModule() {
                       type="date"
                       value={form.fecha_nacimiento}
                       onChange={set("fecha_nacimiento")}
+                    />
+                  </Field>
+                  <Field label="Fecha de ingreso" hint="A la iglesia">
+                    <Input
+                      type="date"
+                      value={form.fecha_ingreso}
+                      onChange={set("fecha_ingreso")}
                     />
                   </Field>
                   <Field label="Teléfono" hint="Se enlaza a WhatsApp">
