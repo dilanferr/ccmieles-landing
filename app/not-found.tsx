@@ -21,14 +21,18 @@ export default function NotFound() {
       <div className="relative z-10 w-full max-w-md">
         <Link
           href="/"
-          className="mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-white/95 p-2.5 shadow-xl shadow-blue-950/40 ring-1 ring-white/40 transition-transform hover:scale-105"
+          className="relative mx-auto grid h-24 w-24 place-items-center transition-transform hover:scale-105"
         >
+          <span
+            aria-hidden
+            className="absolute inset-0 rounded-full bg-white/10 blur-2xl"
+          />
           <Image
             src={LOGO_URL}
             alt={IGLESIA.nombre}
-            width={64}
-            height={64}
-            className="h-full w-full object-contain"
+            width={96}
+            height={96}
+            className="relative h-24 w-24 object-contain drop-shadow-[0_6px_20px_rgba(2,6,23,0.45)]"
           />
         </Link>
 
