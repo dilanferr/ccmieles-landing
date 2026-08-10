@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { getDb } from "./db";
+import { revalidarSitio } from "./config-actions";
 import { Card, Field, Input, Textarea, Button, Alerta, ModuleHeader, Spinner } from "./ui";
 import { SearchIcon } from "@/app/components/icons";
 
@@ -52,13 +53,15 @@ export default function SeoModule() {
       seo_description: form.description,
       seo_keywords: form.keywords || null,
     });
-    setSaving(false);
     if (error) {
+      setSaving(false);
       setSinTabla(true);
       setMsg({ ok: false, text: error.message });
       return;
     }
-    setMsg({ ok: true, text: "SEO guardado. Se reflejará al revalidar el sitio." });
+    await revalidarSitio(); // refresca los metadatos en todo el sitio
+    setSaving(false);
+    setMsg({ ok: true, text: "SEO guardado y sitio actualizado." });
   }
 
   if (loading) {

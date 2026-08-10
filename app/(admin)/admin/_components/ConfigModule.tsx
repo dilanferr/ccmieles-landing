@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { getDb } from "./db";
+import { revalidarSitio } from "./config-actions";
 import { Card, Field, Input, Button, Alerta, ModuleHeader, Spinner } from "./ui";
 import {
   CogIcon,
@@ -110,13 +111,15 @@ export default function ConfigModule() {
     setSaving(true);
     setMsg(null);
     const { error } = await supabase.from("site_settings").upsert(aDb(form));
-    setSaving(false);
     if (error) {
+      setSaving(false);
       setSinTabla(true);
       setMsg({ ok: false, text: error.message });
       return;
     }
-    setMsg({ ok: true, text: "Configuración guardada correctamente." });
+    await revalidarSitio(); // refresca el sitio público al instante
+    setSaving(false);
+    setMsg({ ok: true, text: "Configuración guardada. Sitio actualizado." });
   }
 
   if (loading) {

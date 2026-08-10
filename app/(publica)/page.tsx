@@ -187,15 +187,18 @@ const EXPLORA = [
   },
 ];
 
-// Revalida periódicamente para reflejar cambios de contenido/configuración.
-export const revalidate = 60;
+// ISR: se sirve HTML cacheado y se regenera cada 5 min (o al instante vía
+// revalidación bajo demanda desde el panel). Baja el TTFB drásticamente.
+export const revalidate = 300;
 
 export default async function Home() {
-  const s = await getSettings();
-
-  // Contenido en vivo desde Supabase (con respaldo estático).
-  const eventosDB = await getEventos();
-  const testimoniosDB = await getTestimonios();
+  // Consultas en paralelo (antes secuenciales) para reducir el TTFB. Cada
+  // get* ya está deduplicado con React cache() dentro del render.
+  const [s, eventosDB, testimoniosDB] = await Promise.all([
+    getSettings(),
+    getEventos(),
+    getTestimonios(),
+  ]);
   // Solo eventos cuya fecha y hora aún no han pasado (estado en tiempo real).
   const proximos = eventosDB.filter((e) => !esPasado(e));
   const eventosHome = (proximos.length ? proximos : eventosDB).slice(0, 3);
