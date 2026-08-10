@@ -31,12 +31,12 @@ function enviar(body: Record<string, unknown>, beacon = false) {
     const full = { ...body, session_id: sessionId(), device: device() };
     if (beacon && typeof navigator !== "undefined" && navigator.sendBeacon) {
       navigator.sendBeacon(
-        "/api/track",
+        "/api/signal",
         new Blob([JSON.stringify(full)], { type: "application/json" }),
       );
       return;
     }
-    fetch("/api/track", {
+    fetch("/api/signal", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(full),

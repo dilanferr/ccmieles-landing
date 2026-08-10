@@ -4,12 +4,12 @@
  * Helper para registrar eventos de interacción desde componentes cliente.
  * Ej: track("visit_plan_click", { slug: "home" })
  *     track("testimonio_play", { video_id })
- * Envía al endpoint seguro /api/track (falla en silencio).
+ * Envía al endpoint seguro /api/signal (falla en silencio).
  */
 export function track(name: string, meta: Record<string, unknown> = {}) {
   try {
     const sid = sessionStorage.getItem("mieles.sid") ?? null;
-    fetch("/api/track", {
+    fetch("/api/signal", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
