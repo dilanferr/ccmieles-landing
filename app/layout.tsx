@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { LOGO_URL, OG_IMAGE, IGLESIA } from "@/app/data/iglesia";
 import { getSettings } from "@/src/utils/settings";
 import "./globals.css";
@@ -76,6 +78,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-white text-slate-900">
         {children}
+        {/* Vercel Web Analytics + Core Web Vitals (LCP/INP/CLS) para SEO. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
