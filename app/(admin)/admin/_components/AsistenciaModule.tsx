@@ -20,8 +20,10 @@ import {
   CheckIcon,
   ChevronLeft,
   SearchIcon,
+  DownloadIcon,
 } from "@/app/components/icons";
 import { getDb } from "./db";
+import { esc, exportarPdf } from "@/src/utils/exportPdf";
 import {
   crearSesionCulto,
   actualizarSesionCulto,
@@ -66,6 +68,18 @@ const S_VACIO = {
   hora: "",
   descripcion: "",
 };
+
+/** CSS del reporte de asistencia (el esqueleto lo aporta exportPdf). */
+const CSS_ASISTENCIA_PDF = `
+  .tot{margin-top:22px;font-size:14px;color:#334155}
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:12px}
+  thead th{background:#1e3a8a;color:#fff;text-align:left;padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+  tbody td{padding:8px 12px;border-bottom:1px solid #e9eef5}
+  tbody tr:nth-child(even){background:#f8fafc}
+  .n{width:36px;color:#94a3b8;text-align:right}
+  .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700}
+  .tag.mi{background:#eff6ff;color:#1d4ed8}.tag.vi{background:#ecfdf5;color:#059669}
+`;
 
 export default function AsistenciaModule() {
   const supabase = getDb();
@@ -298,6 +312,52 @@ export default function AsistenciaModule() {
     }
   }
 
+  function exportar() {
+    if (!activa) return;
+    const nombreMiembro = new Map(directorio.map((d) => [d.id, d.nombre]));
+    const filas = asistencias
+      .map((a) => ({
+        nombre:
+          a.tipo_asistente === "miembro"
+            ? a.miembro_id
+              ? (nombreMiembro.get(a.miembro_id) ?? "—")
+              : "—"
+            : (a.visitante_nombre ?? "—"),
+        tipo: a.tipo_asistente === "miembro" ? "Miembro" : "Visitante",
+      }))
+      .sort((x, y) => x.nombre.localeCompare(y.nombre, "es"));
+    const rows = filas
+      .map(
+        (f, i) =>
+          `<tr><td class="n">${i + 1}</td><td>${esc(f.nombre)}</td><td><span class="tag ${f.tipo === "Miembro" ? "mi" : "vi"}">${f.tipo}</span></td></tr>`,
+      )
+      .join("");
+    const miembros = asistencias.filter(
+      (a) => a.tipo_asistente === "miembro",
+    ).length;
+    const vis = asistencias.length - miembros;
+    const cuerpo = `<div class="tot">Total presentes: <b>${asistencias.length}</b> · Miembros: ${miembros} · Visitantes: ${vis}</div>
+    <table>
+      <thead><tr><th class="n">#</th><th>Nombre</th><th>Tipo</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="3" style="text-align:center;padding:20px;color:#94a3b8">Sin asistentes registrados.</td></tr>'}</tbody>
+    </table>`;
+    const ok = exportarPdf({
+      titulo: "Asistencia",
+      encabezado: `Asistencia · ${activa.nombre}`,
+      subtitulo: `${activa.tipo === "culto" ? "Culto" : "Evento"} · ${fmtFecha(activa.fecha)}${activa.hora ? ` · ${activa.hora}` : ""}`,
+      cuerpo,
+      estilos: CSS_ASISTENCIA_PDF,
+      ancho: 720,
+      margenMm: 14,
+    });
+    if (!ok) {
+      setCheckMsg({
+        ok: false,
+        text: "Permite las ventanas emergentes para exportar el reporte.",
+      });
+    }
+  }
+
   // ================= Vista de CHECK-IN =================
   if (activa) {
     const totalMiembros = directorio.length || 1;
@@ -325,15 +385,19 @@ export default function AsistenciaModule() {
               {activa.hora ? ` · ${activa.hora}` : ""}
             </p>
           </div>
-          {cerrada ? (
-            <Button type="button" variant="ghost" onClick={() => alternarCierre(activa)}>
-              Reabrir sesión
+          <div className="flex gap-2">
+            <Button type="button" variant="ghost" onClick={exportar}>
+              <DownloadIcon className="h-4 w-4" />
+              Exportar
             </Button>
-          ) : (
-            <Button type="button" variant="ghost" onClick={() => alternarCierre(activa)}>
-              Cerrar sesión
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => alternarCierre(activa)}
+            >
+              {cerrada ? "Reabrir sesión" : "Cerrar sesión"}
             </Button>
-          )}
+          </div>
         </div>
 
         {/* Contador en vivo + progreso */}
