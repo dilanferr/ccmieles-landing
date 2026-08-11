@@ -35,6 +35,7 @@ import {
   type SesionRow,
   type TipoSesion,
 } from "./asistencia-actions";
+import { consolidarDesdeAsistencia } from "./consolidacion-actions";
 
 type Sesion = SesionRow;
 type Asistencia = {
@@ -104,6 +105,7 @@ export default function AsistenciaModule() {
   const [buscar, setBuscar] = useState("");
   const [visitante, setVisitante] = useState("");
   const [procesando, setProcesando] = useState<Set<string>>(new Set());
+  const [consolidando, setConsolidando] = useState<Set<string>>(new Set());
   const [checkMsg, setCheckMsg] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
@@ -312,6 +314,21 @@ export default function AsistenciaModule() {
     }
   }
 
+  async function consolidar(a: Asistencia) {
+    setConsolidando((s) => new Set(s).add(a.id));
+    const res = await consolidarDesdeAsistencia(a.id);
+    setCheckMsg(
+      res.ok
+        ? { ok: true, text: `${a.visitante_nombre ?? "Visitante"} pasó a Consolidación.` }
+        : { ok: false, text: res.error ?? "No se pudo enviar a Consolidación." },
+    );
+    setConsolidando((s) => {
+      const n = new Set(s);
+      n.delete(a.id);
+      return n;
+    });
+  }
+
   function exportar() {
     if (!activa) return;
     const nombreMiembro = new Map(directorio.map((d) => [d.id, d.nombre]));
@@ -509,6 +526,15 @@ export default function AsistenciaModule() {
                   className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
                 >
                   {v.visitante_nombre}
+                  <button
+                    type="button"
+                    onClick={() => consolidar(v)}
+                    disabled={consolidando.has(v.id)}
+                    title="Enviar a Consolidación"
+                    className="font-semibold text-emerald-600 hover:text-emerald-700 disabled:opacity-50 dark:text-emerald-400"
+                  >
+                    → Consolidar
+                  </button>
                   {!cerrada && (
                     <button
                       type="button"

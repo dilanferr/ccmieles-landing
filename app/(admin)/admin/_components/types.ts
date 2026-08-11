@@ -10,6 +10,7 @@ export type TabId =
   | "asistencia"
   | "inventario"
   | "miembros"
+  | "consolidacion"
   | "finanzas"
   | "peticiones"
   | "multimedia"

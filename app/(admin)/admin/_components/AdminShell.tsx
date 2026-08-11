@@ -22,6 +22,7 @@ import {
   BookIcon,
   BoxIcon,
   UserCheckIcon,
+  SparkIcon,
   TrashIcon,
   ChevronLeft,
   CloseIcon,
@@ -48,6 +49,7 @@ import AuditoriaModule from "./AuditoriaModule";
 import InventarioModule from "./InventarioModule";
 import AsistenciaModule from "./AsistenciaModule";
 import PapeleraModule from "./PapeleraModule";
+import ConsolidacionModule from "./ConsolidacionModule";
 
 type NavItem = { id: TabId; label: string; Icon: Icon; soon?: boolean };
 
@@ -61,6 +63,7 @@ const ACCESO_EXTRA: Partial<Record<TabId, Rol[]>> = {
   asistencia: ["lider", "secretaria"],
   inventario: ["logistica"],
   miembros: ["secretaria"],
+  consolidacion: ["lider", "secretaria"],
   finanzas: ["tesorero"],
   peticiones: ["intercesion"],
 };
@@ -97,7 +100,10 @@ const NAV: { group: string; items: NavItem[] }[] = [
   },
   {
     group: "Pastoral",
-    items: [{ id: "miembros", label: "Fichas de Miembros", Icon: IdCardIcon }],
+    items: [
+      { id: "miembros", label: "Fichas de Miembros", Icon: IdCardIcon },
+      { id: "consolidacion", label: "Consolidación", Icon: SparkIcon },
+    ],
   },
   {
     group: "Tesorería",
@@ -390,6 +396,7 @@ export function AdminShell({
             {tab === "usuarios" && <UsuariosModule miId={userId} />}
             {tab === "auditoria" && <AuditoriaModule />}
             {tab === "papelera" && <PapeleraModule rol={rol} />}
+            {tab === "consolidacion" && <ConsolidacionModule rol={rol} />}
           </main>
         </div>
       </div>
