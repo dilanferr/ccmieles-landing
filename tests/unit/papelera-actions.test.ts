@@ -41,12 +41,13 @@ describe("papelera-actions · listarPapelera", () => {
 
     const res = await listarPapelera();
     expect(res.ok).toBe(true);
-    expect(res.data).toHaveLength(5); // 1 fila por cada una de las 5 tablas
+    expect(res.data).toHaveLength(6); // 1 fila por cada una de las 6 tablas
     expect(sb.from).toHaveBeenCalledWith("transacciones_financieras");
     expect(sb.from).toHaveBeenCalledWith("miembros_iglesia");
     expect(sb.from).toHaveBeenCalledWith("bienes");
     expect(sb.from).toHaveBeenCalledWith("asistencias");
     expect(sb.from).toHaveBeenCalledWith("eventos_cultos");
+    expect(sb.from).toHaveBeenCalledWith("consolidacion");
     expect(sb._builder.not).toHaveBeenCalledWith("eliminado_at", "is", null);
   });
 });

@@ -17,7 +17,7 @@ NULL` y unifica los resultados.
 
 ### Allowlist de tablas (soft-delete)
 
-Solo estas **5 tablas** son gestionables desde la Papelera. La lista es una
+Solo estas **6 tablas** son gestionables desde la Papelera. La lista es una
 **allowlist estricta** en el servidor (`TABLAS`): cualquier tabla fuera de ella
 es rechazada antes de tocar la base de datos, evitando inyección de tabla
 arbitraria.
@@ -29,6 +29,7 @@ arbitraria.
 | `bienes` | **Inventario** | nombre del bien | categoría |
 | `asistencias` | **Asistencia** | nombre del visitante / "Asistencia de miembro" | "Registro de asistencia" |
 | `eventos_cultos` | **Cultos** | nombre de la sesión | Culto/Evento · fecha |
+| `consolidacion` | **Consolidación** | nombre de la persona | Consolidación · estado |
 
 > Otras entidades del panel (turnos, servicios, préstamos, noticias, eventos
 > públicos, clasificados) usan **borrado físico** directo y por diseño **no**
@@ -50,7 +51,7 @@ type PapeleraItem = {
 };
 ```
 
-`listarPapelera()` consulta las 5 tablas **en paralelo** (`Promise.all`), mapea
+`listarPapelera()` consulta las 6 tablas **en paralelo** (`Promise.all`), mapea
 cada fila con la config de su tabla, aplana y ordena por `eliminado_at`
 descendente (lo más reciente arriba). **Resiliencia:** si una tabla falla (RLS,
 red, permiso), esa consulta devuelve `[]` y el resto de la papelera se muestra
@@ -139,7 +140,7 @@ campos sensibles como `firma`.)
 
 | Acción | Rol | Descripción |
 |---|---|---|
-| `listarPapelera()` | admin/pastor | Consulta las 5 tablas en paralelo (`eliminado_at IS NOT NULL`), normaliza a `PapeleraItem[]` y ordena por fecha desc. |
+| `listarPapelera()` | admin/pastor | Consulta las 6 tablas en paralelo (`eliminado_at IS NOT NULL`), normaliza a `PapeleraItem[]` y ordena por fecha desc. |
 | `restaurarRegistro(tabla, id)` | admin/pastor | `UPDATE eliminado_at = NULL`; traduce `23505` a mensaje claro; valida allowlist. |
 | `purgarRegistro(tabla, id)` | **solo admin** | `DELETE` físico irreversible; valida allowlist. |
 
@@ -150,7 +151,7 @@ registran los triggers de BD.
 
 `tests/unit/papelera-actions.test.ts` cubre (con Supabase mockeado, incluyendo
 `mi_rol` y códigos de error): sesión ausente, rol sin permisos, que se consulten
-**las 5 tablas** con `.not("eliminado_at","is",null)`, rechazo de tabla fuera de
+**las 6 tablas** con `.not("eliminado_at","is",null)`, rechazo de tabla fuera de
 la allowlist, restauración (`eliminado_at = null`), **traducción de `23505`**, y
 la separación de permisos de purga (**pastor no puede / admin sí**). Corren en el
 CI en cada push/PR.
@@ -160,8 +161,8 @@ CI en cada push/PR.
 ## 6. UX del módulo
 
 - **KPIs:** total en papelera + desglose por tipo (Finanzas · Fichas ·
-  Inventario · Asistencia · Cultos).
-- **Filtros:** chips con contador — *Todos* + los 5 tipos; el activo se resalta.
+  Inventario · Asistencia · Cultos · Consolidación).
+- **Filtros:** chips con contador — *Todos* + los 6 tipos; el activo se resalta.
 - **Tabla responsiva** (`overflow-x-auto`): Tipo (badge por color), Descripción,
   Detalle, *Eliminado el* (fecha/hora `es-CL`) y Acciones.
 - **Acciones por fila:** *Restaurar* (admin/pastor) y *Eliminar def.* (solo

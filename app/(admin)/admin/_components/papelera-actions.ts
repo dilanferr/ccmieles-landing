@@ -18,7 +18,8 @@ export type PapeleraTabla =
   | "miembros_iglesia"
   | "bienes"
   | "asistencias"
-  | "eventos_cultos";
+  | "eventos_cultos"
+  | "consolidacion";
 
 const TABLAS: PapeleraTabla[] = [
   "transacciones_financieras",
@@ -26,6 +27,7 @@ const TABLAS: PapeleraTabla[] = [
   "bienes",
   "asistencias",
   "eventos_cultos",
+  "consolidacion",
 ];
 
 export type PapeleraItem = {
@@ -115,6 +117,15 @@ const CONFIGS: Cfg[] = [
     map: (r) => ({
       etiqueta: String(r.nombre ?? "—"),
       detalle: `${r.tipo === "culto" ? "Culto" : "Evento"} · ${r.fecha ?? ""}`,
+    }),
+  },
+  {
+    tabla: "consolidacion",
+    tipo: "Consolidación",
+    cols: "id, nombre, estado, eliminado_at",
+    map: (r) => ({
+      etiqueta: String(r.nombre ?? "—"),
+      detalle: `Consolidación · ${r.estado ?? "—"}`,
     }),
   },
 ];

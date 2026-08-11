@@ -12,7 +12,14 @@ import {
 } from "./papelera-actions";
 
 /** Tipos (etiqueta de origen) que devuelve la action, en orden de filtro. */
-const TIPOS = ["Finanzas", "Fichas", "Inventario", "Asistencia", "Cultos"];
+const TIPOS = [
+  "Finanzas",
+  "Fichas",
+  "Inventario",
+  "Asistencia",
+  "Cultos",
+  "Consolidación",
+];
 
 const TIPO_META: Record<string, string> = {
   Finanzas:
@@ -25,6 +32,8 @@ const TIPO_META: Record<string, string> = {
     "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300",
   Cultos:
     "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300",
+  Consolidación:
+    "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
 };
 const BADGE_NEUTRO = "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
 
@@ -137,7 +146,7 @@ export default function PapeleraModule({ rol }: { rol: Rol }) {
       )}
 
       {/* KPIs: total + desglose por tipo */}
-      <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
         <Card className="p-5">
           <p className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
             {items.length}
