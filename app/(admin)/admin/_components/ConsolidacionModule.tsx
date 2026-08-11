@@ -31,6 +31,13 @@ import {
   type ItemMetrica,
   type MetricasSalud,
 } from "./consolidacion-metricas";
+import {
+  PLANTILLAS_WA,
+  MINISTERIO,
+  normalizarTelefono,
+  construirWaLink,
+  renderPlantilla,
+} from "./wa";
 
 type ConsRow = {
   id: string;
@@ -150,6 +157,14 @@ function etiquetaDias(n: number | null): string {
   if (n === 1) return "hace 1 día";
   return `hace ${n} días`;
 }
+function fechaLegible(ms: number): string {
+  if (!ms) return "";
+  return new Date(ms).toLocaleDateString("es-CL", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
 function fmtFechaHora(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -181,6 +196,7 @@ export default function ConsolidacionModule({ rol }: { rol: Rol }) {
   const [respSel, setRespSel] = useState("");
   const [notaTipo, setNotaTipo] = useState<TipoNota>("general");
   const [notaTexto, setNotaTexto] = useState("");
+  const [waPlantilla, setWaPlantilla] = useState(PLANTILLAS_WA[0].id);
 
   // Modal de alta manual
   const [nuevoOpen, setNuevoOpen] = useState(false);
@@ -349,6 +365,37 @@ export default function ConsolidacionModule({ rol }: { rol: Rol }) {
       setNotaTexto("");
       setNotaTipo("general");
     } else setMsg({ ok: false, text: res.error ?? "No se pudo agregar la nota." });
+  }
+
+  // Mensaje de la plantilla activa, renderizado con los datos de la persona.
+  const waMensaje = sel
+    ? renderPlantilla(
+        (PLANTILLAS_WA.find((p) => p.id === waPlantilla) ?? PLANTILLAS_WA[0]).texto,
+        { nombre: sel.nombre, ministerio: MINISTERIO, fecha: fechaLegible(ahoraMs) },
+      )
+    : "";
+  const waTelefono = sel ? normalizarTelefono(sel.telefono) : null;
+
+  function contactarWhatsApp() {
+    if (!sel) return;
+    const link = construirWaLink(waTelefono, waMensaje);
+    if (!link) {
+      setMsg({ ok: false, text: "Esta persona no tiene un teléfono válido para WhatsApp." });
+      return;
+    }
+    const plantilla = PLANTILLAS_WA.find((p) => p.id === waPlantilla) ?? PLANTILLAS_WA[0];
+    window.open(link, "_blank", "noopener,noreferrer");
+    // Registra el contacto como nota append-only en el historial.
+    const idActual = sel.id;
+    void agregarNota(
+      idActual,
+      "general",
+      `📱 Contacto por WhatsApp iniciado · plantilla "${plantilla.nombre}"`,
+    ).then((res) => {
+      if (res.ok && res.data && selId === idActual) {
+        setNotas((n) => [res.data as Nota, ...n]);
+      }
+    });
   }
 
   async function convertir() {
@@ -679,6 +726,46 @@ export default function ConsolidacionModule({ rol }: { rol: Rol }) {
                   Eliminar
                 </Button>
               </div>
+            </div>
+
+            {/* Contactar por WhatsApp (wa.me) */}
+            <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+              <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-emerald-800 dark:text-emerald-300">
+                💬 Contactar por WhatsApp
+              </h3>
+              <select
+                value={waPlantilla}
+                onChange={(e) => setWaPlantilla(e.target.value)}
+                className={SEL.replace("text-xs", "text-sm")}
+              >
+                {PLANTILLAS_WA.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 whitespace-pre-wrap rounded-xl bg-white/70 p-3 text-xs text-slate-600 dark:bg-slate-900/40 dark:text-slate-300">
+                {waMensaje}
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={contactarWhatsApp}
+                  disabled={!waTelefono}
+                  className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition-all hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                >
+                  Abrir WhatsApp
+                </button>
+                {!waTelefono && (
+                  <span className="text-xs text-amber-600 dark:text-amber-400">
+                    Sin teléfono válido — agrégalo arriba.
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 text-[11px] text-emerald-700/70 dark:text-emerald-400/60">
+                Se abrirá el chat con el mensaje prellenado y se registrará una
+                nota automática en el historial.
+              </p>
             </div>
 
             {/* Timeline de notas pastorales */}
