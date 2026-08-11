@@ -25,6 +25,12 @@ import {
   type EstadoConsolidacion,
   type TipoNota,
 } from "./consolidacion-actions";
+import {
+  enRiesgo,
+  metricasSalud,
+  type ItemMetrica,
+  type MetricasSalud,
+} from "./consolidacion-metricas";
 
 type ConsRow = {
   id: string;
@@ -41,6 +47,7 @@ type ConsRow = {
   fecha_bautismo: string | null;
   fecha_recepcion: string | null;
   creado_at: string | null;
+  actualizado_at: string | null;
 };
 
 type Servidor = { id: string; nombre: string; correo: string | null; rol: string };
@@ -54,7 +61,7 @@ type Nota = {
 };
 
 const COLS =
-  "id, nombre, telefono, email, direccion, estado, responsable_id, origen, asistencia_id, miembro_id, bautizado, fecha_bautismo, fecha_recepcion, creado_at";
+  "id, nombre, telefono, email, direccion, estado, responsable_id, origen, asistencia_id, miembro_id, bautizado, fecha_bautismo, fecha_recepcion, creado_at, actualizado_at";
 const NOTA_COLS = "id, consolidacion_id, autor_id, tipo, nota, creado_at";
 
 type EtapaMeta = {
@@ -120,6 +127,14 @@ const TIPO_NOTA_META: Record<TipoNota, { label: string; cls: string }> = {
 };
 const TIPOS_NOTA: TipoNota[] = ["general", "llamada", "visita", "oracion"];
 
+const BAR_BG: Record<EstadoConsolidacion, string> = {
+  recibido: "bg-sky-400",
+  contactado: "bg-indigo-400",
+  en_proceso: "bg-amber-400",
+  integrado: "bg-emerald-400",
+  no_continua: "bg-slate-300",
+};
+
 const SEL =
   "w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-2.5 pr-7 text-xs font-semibold text-slate-700 outline-none transition-colors focus:border-blue-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200";
 
@@ -172,23 +187,40 @@ export default function ConsolidacionModule({ rol }: { rol: Rol }) {
   const [nuevo, setNuevo] = useState({ nombre: "", telefono: "", email: "", direccion: "" });
   const [guardandoNuevo, setGuardandoNuevo] = useState(false);
 
+  // Vista (tablero / métricas), filtro de atención y última nota por persona.
+  const [vista, setVista] = useState<"tablero" | "metricas">("tablero");
+  const [soloRiesgo, setSoloRiesgo] = useState(false);
+  const [ultimaNota, setUltimaNota] = useState<Map<string, string>>(new Map());
+  const [ahoraMs, setAhoraMs] = useState(0); // reloj capturado al cargar (evita impureza en render)
+
   const sel = useMemo(() => items.find((i) => i.id === selId) ?? null, [items, selId]);
 
   useEffect(() => {
     let vivo = true;
     (async () => {
       const supabase = getDb();
-      const [{ data: cons }, { data: serv }] = await Promise.all([
+      const [{ data: cons }, { data: serv }, { data: notas }] = await Promise.all([
         supabase
           .from("consolidacion")
           .select(COLS)
           .is("eliminado_at", null)
           .order("fecha_recepcion", { ascending: true }),
         supabase.rpc("fn_servidores"),
+        supabase
+          .from("consolidacion_notas")
+          .select("consolidacion_id, creado_at")
+          .order("creado_at", { ascending: false }),
       ]);
       if (!vivo) return;
       setItems((cons as ConsRow[] | null) ?? []);
       setServidores((serv as Servidor[] | null) ?? []);
+      // Resumen: primera fila por id = nota más reciente (viene ordenado desc).
+      const m = new Map<string, string>();
+      for (const n of (notas as { consolidacion_id: string; creado_at: string }[] | null) ?? []) {
+        if (!m.has(n.consolidacion_id)) m.set(n.consolidacion_id, n.creado_at);
+      }
+      setUltimaNota(m);
+      setAhoraMs(Date.now());
       setLoading(false);
     })();
     return () => {
@@ -202,12 +234,25 @@ export default function ConsolidacionModule({ rol }: { rol: Rol }) {
     return m;
   }, [servidores]);
 
+  // IDs "en riesgo / estancado" (recibido/contactado > 7 días sin actividad).
+  const riesgoSet = useMemo(() => {
+    const s = new Set<string>();
+    if (!ahoraMs) return s;
+    for (const i of items) {
+      if (enRiesgo(i as ItemMetrica, ultimaNota.get(i.id) ?? null, ahoraMs)) s.add(i.id);
+    }
+    return s;
+  }, [items, ultimaNota, ahoraMs]);
+
   const porEstado = useMemo(() => {
     const m = new Map<EstadoConsolidacion, ConsRow[]>();
     for (const e of TODAS_ETAPAS) m.set(e.estado, []);
-    for (const i of items) m.get(i.estado)?.push(i);
+    const fuente = soloRiesgo ? items.filter((i) => riesgoSet.has(i.id)) : items;
+    for (const i of fuente) m.get(i.estado)?.push(i);
     return m;
-  }, [items]);
+  }, [items, soloRiesgo, riesgoSet]);
+
+  const metricas = useMemo(() => metricasSalud(items as ItemMetrica[]), [items]);
 
   const kpis = useMemo(() => {
     const activos = items.filter(
@@ -217,8 +262,14 @@ export default function ConsolidacionModule({ rol }: { rol: Rol }) {
     const base = items.filter((i) => i.estado !== "no_continua").length;
     const tasa = base ? Math.round((integrados / base) * 100) : 0;
     const sinAsignar = activos.filter((i) => !i.responsable_id).length;
-    return { activos: activos.length, integrados, tasa, sinAsignar };
-  }, [items]);
+    return {
+      activos: activos.length,
+      integrados,
+      tasa,
+      sinAsignar,
+      riesgo: riesgoSet.size,
+    };
+  }, [items, riesgoSet]);
 
   const columnas = verDescartados ? TODAS_ETAPAS : ETAPAS;
 
@@ -357,15 +408,22 @@ export default function ConsolidacionModule({ rol }: { rol: Rol }) {
         descripcion="Acompaña a cada visitante en su recorrido: de recibido a integrado a la familia."
         accion={
           <>
-            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-              <input
-                type="checkbox"
-                checked={verDescartados}
-                onChange={(e) => setVerDescartados(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300"
-              />
-              Ver descartados
-            </label>
+            <div className="inline-flex rounded-full border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-800">
+              {(["tablero", "metricas"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setVista(v)}
+                  className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+                    vista === v
+                      ? "bg-blue-700 text-white"
+                      : "text-slate-500 hover:text-blue-700 dark:text-slate-400"
+                  }`}
+                >
+                  {v === "tablero" ? "Tablero" : "Métricas"}
+                </button>
+              ))}
+            </div>
             <Button type="button" onClick={() => setNuevoOpen(true)}>
               + Nueva persona
             </Button>
@@ -380,15 +438,20 @@ export default function ConsolidacionModule({ rol }: { rol: Rol }) {
       )}
 
       {/* KPIs */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {[
-          { label: "En seguimiento", valor: kpis.activos },
-          { label: "Integrados", valor: kpis.integrados },
-          { label: "Tasa de conversión", valor: `${kpis.tasa}%` },
-          { label: "Sin responsable", valor: kpis.sinAsignar },
+          { label: "En seguimiento", valor: kpis.activos, alerta: false },
+          { label: "Requiere atención", valor: kpis.riesgo, alerta: kpis.riesgo > 0 },
+          { label: "Integrados", valor: kpis.integrados, alerta: false },
+          { label: "Tasa de conversión", valor: `${kpis.tasa}%`, alerta: false },
+          { label: "Sin responsable", valor: kpis.sinAsignar, alerta: false },
         ].map((k) => (
           <Card key={k.label} className="p-5">
-            <p className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <p
+              className={`text-3xl font-bold tracking-tight ${
+                k.alerta ? "text-red-600 dark:text-red-400" : "text-slate-900 dark:text-white"
+              }`}
+            >
               {k.valor}
             </p>
             <p className="mt-0.5 text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -398,7 +461,6 @@ export default function ConsolidacionModule({ rol }: { rol: Rol }) {
         ))}
       </div>
 
-      {/* Tablero Kanban */}
       {loading ? (
         <div className="mt-6">
           <EstadoVacio loading>Cargando pipeline…</EstadoVacio>
@@ -410,47 +472,84 @@ export default function ConsolidacionModule({ rol }: { rol: Rol }) {
             desde el check-in de Asistencia.
           </EstadoVacio>
         </div>
+      ) : vista === "metricas" ? (
+        <PanelMetricas metricas={metricas} servMap={servMap} />
       ) : (
-        <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:overflow-x-auto lg:pb-2">
-          {columnas.map((etapa) => {
-            const cards = porEstado.get(etapa.estado) ?? [];
-            return (
-              <div
-                key={etapa.estado}
-                className={`flex flex-col rounded-2xl border border-t-4 border-slate-200 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-900/40 lg:w-72 lg:shrink-0 ${etapa.col}`}
+        <>
+          {/* Filtros del tablero */}
+          <div className="mb-4 mt-6 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSoloRiesgo((v) => !v)}
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                soloRiesgo
+                  ? "border-red-500 bg-red-600 text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-red-200 hover:text-red-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              }`}
+            >
+              Requiere atención
+              <span
+                className={`rounded-full px-1.5 text-xs ${
+                  soloRiesgo ? "bg-white/20" : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300"
+                }`}
               >
-                <div className="mb-3 flex items-center justify-between px-1">
-                  <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                    {etapa.label}
-                  </h3>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${etapa.badge}`}
-                  >
-                    {cards.length}
-                  </span>
+                {kpis.riesgo}
+              </span>
+            </button>
+            <label className="ml-1 inline-flex cursor-pointer items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+              <input
+                type="checkbox"
+                checked={verDescartados}
+                onChange={(e) => setVerDescartados(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300"
+              />
+              Ver descartados
+            </label>
+          </div>
+
+          {/* Tablero Kanban */}
+          <div className="flex flex-col gap-4 lg:flex-row lg:overflow-x-auto lg:pb-2">
+            {columnas.map((etapa) => {
+              const cards = porEstado.get(etapa.estado) ?? [];
+              return (
+                <div
+                  key={etapa.estado}
+                  className={`flex flex-col rounded-2xl border border-t-4 border-slate-200 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-900/40 lg:w-72 lg:shrink-0 ${etapa.col}`}
+                >
+                  <div className="mb-3 flex items-center justify-between px-1">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                      {etapa.label}
+                    </h3>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${etapa.badge}`}
+                    >
+                      {cards.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-2.5">
+                    {cards.length === 0 ? (
+                      <p className="px-1 py-6 text-center text-xs text-slate-400">
+                        {soloRiesgo ? "Sin casos en riesgo" : "Sin personas"}
+                      </p>
+                    ) : (
+                      cards.map((c) => (
+                        <ConsCard
+                          key={c.id}
+                          c={c}
+                          responsable={c.responsable_id ? servMap.get(c.responsable_id) : undefined}
+                          busy={procesando.has(c.id)}
+                          riesgo={riesgoSet.has(c.id)}
+                          onOpen={() => abrir(c.id)}
+                          onEstado={(nuevo) => cambiarEtapa(c, nuevo)}
+                        />
+                      ))
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-col gap-2.5">
-                  {cards.length === 0 ? (
-                    <p className="px-1 py-6 text-center text-xs text-slate-400">
-                      Sin personas
-                    </p>
-                  ) : (
-                    cards.map((c) => (
-                      <ConsCard
-                        key={c.id}
-                        c={c}
-                        responsable={c.responsable_id ? servMap.get(c.responsable_id) : undefined}
-                        busy={procesando.has(c.id)}
-                        onOpen={() => abrir(c.id)}
-                        onEstado={(nuevo) => cambiarEtapa(c, nuevo)}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* Drawer de detalle pastoral */}
@@ -728,12 +827,14 @@ function ConsCard({
   c,
   responsable,
   busy,
+  riesgo,
   onOpen,
   onEstado,
 }: {
   c: ConsRow;
   responsable?: string;
   busy: boolean;
+  riesgo: boolean;
   onOpen: () => void;
   onEstado: (nuevo: EstadoConsolidacion) => void;
 }) {
@@ -749,8 +850,17 @@ function ConsCard({
           onOpen();
         }
       }}
-      className={`cursor-pointer rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-800 ${busy ? "opacity-60" : ""}`}
+      className={`cursor-pointer rounded-xl border bg-white p-3 text-left shadow-sm transition-shadow hover:shadow-md dark:bg-slate-800 ${
+        riesgo
+          ? "border-red-300 ring-1 ring-red-200 dark:border-red-900/60 dark:ring-red-900/40"
+          : "border-slate-200 dark:border-slate-700"
+      } ${busy ? "opacity-60" : ""}`}
     >
+      {riesgo && (
+        <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-600 dark:bg-red-950/40 dark:text-red-400">
+          ⚠ En riesgo
+        </span>
+      )}
       <div className="flex items-start justify-between gap-2">
         <p className="font-semibold text-slate-900 dark:text-white">{c.nombre}</p>
         {c.miembro_id && (
@@ -785,6 +895,114 @@ function ConsCard({
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+function PanelMetricas({
+  metricas,
+  servMap,
+}: {
+  metricas: MetricasSalud;
+  servMap: Map<string, string>;
+}) {
+  const { embudo, conversion, integrados, totalPipeline, tiempoPromedioDias, carga } =
+    metricas;
+  const maxEmbudo = Math.max(1, ...ETAPAS.map((e) => embudo[e.estado]));
+  const maxCarga = Math.max(1, ...carga.map((c) => c.activos));
+
+  return (
+    <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      {/* Embudo de conversión */}
+      <Card>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+          Embudo de conversión
+        </h3>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          De <b>{totalPipeline}</b> en pipeline, <b>{integrados}</b> integrados ·{" "}
+          <span className="font-bold text-emerald-600 dark:text-emerald-400">
+            {conversion}% de conversión
+          </span>
+        </p>
+        <div className="mt-4 flex flex-col gap-3">
+          {ETAPAS.map((e) => {
+            const n = embudo[e.estado];
+            return (
+              <div key={e.estado}>
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  <span>{e.label}</span>
+                  <span>{n}</span>
+                </div>
+                <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                  <div
+                    className={`h-full rounded-full ${BAR_BG[e.estado]}`}
+                    style={{ width: `${Math.round((n / maxEmbudo) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Tiempo promedio de integración */}
+      <Card>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+          Tiempo promedio de integración
+        </h3>
+        <p className="mt-4 text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+          {tiempoPromedioDias === null ? "—" : `${tiempoPromedioDias} días`}
+        </p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Aprox. desde la recepción hasta marcar <b>Integrado</b>
+          {tiempoPromedioDias === null ? " (aún no hay integrados)." : "."}
+        </p>
+      </Card>
+
+      {/* Carga por responsable */}
+      <Card className="lg:col-span-2">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+          Carga por responsable
+        </h3>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Visitantes activos asignados (excluye integrados y descartados).
+        </p>
+        {carga.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-400">Sin personas activas.</p>
+        ) : (
+          <ul className="mt-4 flex flex-col gap-2.5">
+            {carga.map((c) => {
+              const nombre = c.responsable_id
+                ? (servMap.get(c.responsable_id) ?? "Responsable")
+                : "Sin asignar";
+              const sinAsignar = !c.responsable_id;
+              return (
+                <li key={c.responsable_id ?? "none"} className="flex items-center gap-3">
+                  <span
+                    className={`w-32 shrink-0 truncate text-sm sm:w-44 ${
+                      sinAsignar
+                        ? "font-semibold text-amber-600 dark:text-amber-400"
+                        : "text-slate-700 dark:text-slate-200"
+                    }`}
+                    title={nombre}
+                  >
+                    {nombre}
+                  </span>
+                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                    <div
+                      className={`h-full rounded-full ${sinAsignar ? "bg-amber-400" : "bg-blue-500"}`}
+                      style={{ width: `${Math.round((c.activos / maxCarga) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="w-8 text-right text-sm font-bold text-slate-900 dark:text-white">
+                    {c.activos}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
     </div>
   );
 }
