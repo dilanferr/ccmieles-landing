@@ -21,6 +21,7 @@ export type MiembroInput = {
   direccion: string | null;
   fecha_nacimiento: string | null;
   fecha_ingreso: string | null;
+  fecha_bautismo: string | null;
   salud: string | null;
   tipo_sangre: string | null;
   contacto_emergencia_nombre: string | null;
@@ -37,7 +38,7 @@ export type Resultado<T = undefined> = {
 };
 
 const COLS =
-  "id, nombre_completo, rut, telefono, correo, direccion, fecha_nacimiento, fecha_ingreso, salud, tipo_sangre, contacto_emergencia_nombre, contacto_emergencia_telefono, firma, creado_at";
+  "id, nombre_completo, rut, telefono, correo, direccion, fecha_nacimiento, fecha_ingreso, fecha_bautismo, salud, tipo_sangre, contacto_emergencia_nombre, contacto_emergencia_telefono, firma, creado_at";
 
 async function getAdminClient() {
   const supabase = await createServerSupabase();
@@ -61,6 +62,7 @@ function normalizar(input: MiembroInput) {
     direccion: t(input.direccion),
     fecha_nacimiento: input.fecha_nacimiento || null,
     fecha_ingreso: input.fecha_ingreso || null,
+    fecha_bautismo: input.fecha_bautismo || null,
     salud: t(input.salud),
     tipo_sangre: t(input.tipo_sangre),
     contacto_emergencia_nombre: t(input.contacto_emergencia_nombre),

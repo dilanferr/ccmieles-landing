@@ -50,6 +50,7 @@ import InventarioModule from "./InventarioModule";
 import AsistenciaModule from "./AsistenciaModule";
 import PapeleraModule from "./PapeleraModule";
 import ConsolidacionModule from "./ConsolidacionModule";
+import CuidadoModule from "./CuidadoModule";
 import { getDb } from "./db";
 
 type NavItem = { id: TabId; label: string; Icon: Icon; soon?: boolean };
@@ -65,6 +66,7 @@ const ACCESO_EXTRA: Partial<Record<TabId, Rol[]>> = {
   inventario: ["logistica"],
   miembros: ["secretaria"],
   consolidacion: ["lider", "secretaria"],
+  cuidado: ["secretaria"],
   finanzas: ["tesorero"],
   peticiones: ["intercesion"],
 };
@@ -104,6 +106,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { id: "miembros", label: "Fichas de Miembros", Icon: IdCardIcon },
       { id: "consolidacion", label: "Consolidación", Icon: SparkIcon },
+      { id: "cuidado", label: "Cuidado Pastoral", Icon: HeartIcon },
     ],
   },
   {
@@ -428,6 +431,7 @@ export function AdminShell({
             {tab === "auditoria" && <AuditoriaModule />}
             {tab === "papelera" && <PapeleraModule rol={rol} />}
             {tab === "consolidacion" && <ConsolidacionModule rol={rol} />}
+            {tab === "cuidado" && <CuidadoModule />}
           </main>
         </div>
       </div>

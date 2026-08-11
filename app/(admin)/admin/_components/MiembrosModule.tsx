@@ -27,6 +27,7 @@ import {
   SearchIcon,
 } from "@/app/components/icons";
 import { getDb } from "./db";
+import { calcularOcasion, etiquetaProximo } from "./cuidado-pastoral";
 import { esc, exportarPdf } from "@/src/utils/exportPdf";
 import FirmaCanvas from "./FirmaCanvas";
 import {
@@ -44,6 +45,7 @@ type Miembro = {
   direccion: string;
   fecha_nacimiento: string;
   fecha_ingreso: string;
+  fecha_bautismo: string;
   salud: string;
   tipo_sangre: string;
   contacto_emergencia_nombre: string;
@@ -60,6 +62,7 @@ type FilaDB = {
   direccion: string | null;
   fecha_nacimiento: string | null;
   fecha_ingreso: string | null;
+  fecha_bautismo: string | null;
   salud: string | null;
   tipo_sangre: string | null;
   contacto_emergencia_nombre: string | null;
@@ -68,7 +71,7 @@ type FilaDB = {
 };
 
 const COLS =
-  "id, nombre_completo, rut, telefono, correo, direccion, fecha_nacimiento, fecha_ingreso, salud, tipo_sangre, contacto_emergencia_nombre, contacto_emergencia_telefono, firma, creado_at";
+  "id, nombre_completo, rut, telefono, correo, direccion, fecha_nacimiento, fecha_ingreso, fecha_bautismo, salud, tipo_sangre, contacto_emergencia_nombre, contacto_emergencia_telefono, firma, creado_at";
 
 const TIPOS_SANGRE = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -80,6 +83,7 @@ const VACIO = {
   direccion: "",
   fecha_nacimiento: "",
   fecha_ingreso: "",
+  fecha_bautismo: "",
   salud: "",
   tipo_sangre: "",
   contacto_emergencia_nombre: "",
@@ -97,6 +101,7 @@ function desdeDB(r: FilaDB): Miembro {
     direccion: r.direccion ?? "",
     fecha_nacimiento: r.fecha_nacimiento ?? "",
     fecha_ingreso: r.fecha_ingreso ?? "",
+    fecha_bautismo: r.fecha_bautismo ?? "",
     salud: r.salud ?? "",
     tipo_sangre: r.tipo_sangre ?? "",
     contacto_emergencia_nombre: r.contacto_emergencia_nombre ?? "",
@@ -158,6 +163,7 @@ export default function MiembrosModule() {
   const [editId, setEditId] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [ahoraMs, setAhoraMs] = useState(0); // reloj capturado al cargar (badges)
 
   const set = (k: keyof typeof VACIO) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -177,6 +183,7 @@ export default function MiembrosModule() {
         .order("nombre_completo", { ascending: true });
       if (!activo) return;
       if (!error && data) setLista((data as FilaDB[]).map(desdeDB));
+      setAhoraMs(Date.now());
       setLoading(false);
     })();
     return () => {
@@ -240,6 +247,7 @@ export default function MiembrosModule() {
       direccion: form.direccion || null,
       fecha_nacimiento: form.fecha_nacimiento || null,
       fecha_ingreso: form.fecha_ingreso || null,
+      fecha_bautismo: form.fecha_bautismo || null,
       salud: form.salud || null,
       tipo_sangre: form.tipo_sangre || null,
       contacto_emergencia_nombre: form.contacto_emergencia_nombre || null,
@@ -306,6 +314,7 @@ export default function MiembrosModule() {
       ${row("Correo electrónico", m.correo)}
       ${row("Fecha de nacimiento / Edad", nac)}
       ${row("Fecha de ingreso", m.fecha_ingreso ? fmtFecha(m.fecha_ingreso) : "—")}
+      ${row("Fecha de bautismo", m.fecha_bautismo ? fmtFecha(m.fecha_bautismo) : "—")}
       ${row("Dirección", m.direccion)}
     </div>
     <h2>Ficha médica y de emergencia</h2>
@@ -397,6 +406,12 @@ export default function MiembrosModule() {
                 {filtradas.map((m) => {
                   const e = edad(m.fecha_nacimiento);
                   const wa = waLink(m.telefono);
+                  const cumple = ahoraMs
+                    ? calcularOcasion(m.fecha_nacimiento, ahoraMs)
+                    : null;
+                  const bautizo = ahoraMs
+                    ? calcularOcasion(m.fecha_bautismo, ahoraMs)
+                    : null;
                   return (
                     <tr
                       key={m.id}
@@ -410,11 +425,29 @@ export default function MiembrosModule() {
                         <p className="font-semibold text-slate-900 dark:text-white">
                           {m.nombre_completo}
                         </p>
-                        {m.tipo_sangre && (
-                          <span className="mt-0.5 inline-block rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-600 dark:bg-red-950/40 dark:text-red-300">
-                            {m.tipo_sangre}
-                          </span>
-                        )}
+                        <span className="mt-0.5 flex flex-wrap items-center gap-1">
+                          {m.tipo_sangre && (
+                            <span className="inline-block rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-600 dark:bg-red-950/40 dark:text-red-300">
+                              {m.tipo_sangre}
+                            </span>
+                          )}
+                          {cumple && cumple.dias <= 7 && (
+                            <span
+                              className="inline-block rounded bg-pink-50 px-1.5 py-0.5 text-[10px] font-bold text-pink-600 dark:bg-pink-950/40 dark:text-pink-300"
+                              title={`Cumpleaños ${etiquetaProximo(cumple.dias)}`}
+                            >
+                              🎂 {etiquetaProximo(cumple.dias)}
+                            </span>
+                          )}
+                          {bautizo && bautizo.dias <= 7 && (
+                            <span
+                              className="inline-block rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-bold text-sky-600 dark:bg-sky-950/40 dark:text-sky-300"
+                              title={`Aniversario de bautismo ${etiquetaProximo(bautizo.dias)}`}
+                            >
+                              🕊️ {etiquetaProximo(bautizo.dias)}
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td className="px-5 py-4 text-slate-600 dark:text-slate-300">
                         {m.rut || "—"}
@@ -540,6 +573,13 @@ export default function MiembrosModule() {
                       type="date"
                       value={form.fecha_ingreso}
                       onChange={set("fecha_ingreso")}
+                    />
+                  </Field>
+                  <Field label="Fecha de bautismo" hint="Para aniversarios">
+                    <Input
+                      type="date"
+                      value={form.fecha_bautismo}
+                      onChange={set("fecha_bautismo")}
                     />
                   </Field>
                   <Field label="Teléfono" hint="Se enlaza a WhatsApp">

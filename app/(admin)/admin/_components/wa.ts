@@ -50,6 +50,13 @@ export const PLANTILLAS_WA: PlantillaWa[] = [
       "¡Feliz cumpleaños {nombre}! 🎉🎂 Que el Señor te llene de vida, salud y bendición " +
       "en este nuevo año. Te abrazamos con cariño desde {ministerio}.",
   },
+  {
+    id: "aniversario_bautismo",
+    nombre: "Aniversario de bautismo",
+    texto:
+      "¡Feliz aniversario de tu bautismo, {nombre}! 🕊️ Damos gracias a Dios por tu vida y tu " +
+      "testimonio en {ministerio}. Que Él siga bendiciendo y renovando tu caminar con Él.",
+  },
 ];
 
 /**

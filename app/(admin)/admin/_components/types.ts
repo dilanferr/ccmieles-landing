@@ -11,6 +11,7 @@ export type TabId =
   | "inventario"
   | "miembros"
   | "consolidacion"
+  | "cuidado"
   | "finanzas"
   | "peticiones"
   | "multimedia"
