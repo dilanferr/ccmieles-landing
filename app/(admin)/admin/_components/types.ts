@@ -16,6 +16,7 @@ export type TabId =
   | "seo"
   | "usuarios"
   | "auditoria"
+  | "papelera"
   | "config";
 
 /** Roles del panel (RBAC). admin y pastor tienen acceso total. */

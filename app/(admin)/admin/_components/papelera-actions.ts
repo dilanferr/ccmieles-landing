@@ -110,7 +110,7 @@ const CONFIGS: Cfg[] = [
   },
   {
     tabla: "eventos_cultos",
-    tipo: "Sesiones",
+    tipo: "Cultos",
     cols: "id, nombre, tipo, fecha, eliminado_at",
     map: (r) => ({
       etiqueta: String(r.nombre ?? "—"),

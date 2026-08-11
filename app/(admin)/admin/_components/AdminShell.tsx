@@ -22,6 +22,7 @@ import {
   BookIcon,
   BoxIcon,
   UserCheckIcon,
+  TrashIcon,
   ChevronLeft,
   CloseIcon,
   MenuIcon,
@@ -46,6 +47,7 @@ import UsuariosModule from "./UsuariosModule";
 import AuditoriaModule from "./AuditoriaModule";
 import InventarioModule from "./InventarioModule";
 import AsistenciaModule from "./AsistenciaModule";
+import PapeleraModule from "./PapeleraModule";
 
 type NavItem = { id: TabId; label: string; Icon: Icon; soon?: boolean };
 
@@ -114,6 +116,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { id: "usuarios", label: "Usuarios y Roles", Icon: LockIcon },
       { id: "auditoria", label: "Auditoría", Icon: BookIcon },
+      { id: "papelera", label: "Papelera", Icon: TrashIcon },
     ],
   },
 ];
@@ -386,6 +389,7 @@ export function AdminShell({
             {tab === "seo" && <SeoModule />}
             {tab === "usuarios" && <UsuariosModule miId={userId} />}
             {tab === "auditoria" && <AuditoriaModule />}
+            {tab === "papelera" && <PapeleraModule rol={rol} />}
           </main>
         </div>
       </div>
