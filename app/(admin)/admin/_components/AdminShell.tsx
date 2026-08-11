@@ -50,6 +50,7 @@ import InventarioModule from "./InventarioModule";
 import AsistenciaModule from "./AsistenciaModule";
 import PapeleraModule from "./PapeleraModule";
 import ConsolidacionModule from "./ConsolidacionModule";
+import { getDb } from "./db";
 
 type NavItem = { id: TabId; label: string; Icon: Icon; soon?: boolean };
 
@@ -160,6 +161,7 @@ export function AdminShell({
   const [palette, setPalette] = useState(false);
   const [ready, setReady] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false); // drawer del sidebar en móvil
+  const [riesgoCount, setRiesgoCount] = useState(0); // consolidaciones "en riesgo" (badge)
 
   // Recupera preferencias desde localStorage tras el montaje. Aquí setState en
   // efecto ES el patrón correcto: localStorage no existe en SSR y `ready` evita
@@ -177,6 +179,21 @@ export function AdminShell({
   useEffect(() => {
     if (ready) localStorage.setItem("mieles.admin.theme", dark ? "dark" : "light");
   }, [dark, ready]);
+
+  // Badge de alerta: cuenta liviana (un RPC escalar en BD) de consolidaciones
+  // "en riesgo". Solo se pide si el rol puede ver el módulo. Falla en silencio
+  // (si el RPC no existe aún o no hay permiso, el badge simplemente no aparece).
+  useEffect(() => {
+    if (!puedeVer(rol, "consolidacion")) return;
+    let vivo = true;
+    (async () => {
+      const { data } = await getDb().rpc("fn_consolidacion_riesgo");
+      if (vivo && typeof data === "number") setRiesgoCount(data);
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [rol]);
 
   // Atajo ⌘K / Ctrl+K para la búsqueda.
   useEffect(() => {
@@ -261,7 +278,7 @@ export function AdminShell({
                           disabled={item.soon}
                           title={collapsed ? item.label : undefined}
                           aria-current={active ? "page" : undefined}
-                          className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
+                          className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
                             active
                               ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
                               : item.soon
@@ -275,6 +292,20 @@ export function AdminShell({
                           >
                             {item.label}
                           </span>
+                          {item.id === "consolidacion" && riesgoCount > 0 && (
+                            <>
+                              <span
+                                title={`${riesgoCount} en riesgo`}
+                                className={`rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white ${collapsed ? "lg:hidden" : ""}`}
+                              >
+                                {riesgoCount}
+                              </span>
+                              {/* Colapsado: un punto rojo sobre el ícono. */}
+                              <span
+                                className={`absolute right-2 top-1.5 hidden h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-slate-900 ${collapsed ? "lg:block" : ""}`}
+                              />
+                            </>
+                          )}
                           {item.soon && (
                             <span
                               className={`rounded-full bg-slate-800 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-400 ${collapsed ? "lg:hidden" : ""}`}

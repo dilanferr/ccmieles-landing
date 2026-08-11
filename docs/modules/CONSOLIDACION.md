@@ -197,14 +197,73 @@ mismo patrón de `directorio_miembros()`.
 
 ---
 
+## 7. Salud pastoral: alertas de riesgo y métricas (Fase 3)
+
+Toda la lógica de salud es **pura y determinista** (sin React ni Supabase) y vive
+en `consolidacion-metricas.ts`, probada en `consolidacion-metricas.test.ts`.
+Recibe `ahoraMs` como parámetro (no lee el reloj) para poder testearse.
+
+### Días sin actividad y umbral de riesgo
+
+- **Actividad** de una persona = la fecha **más reciente** entre: su **última
+  nota**, su **creación** (`creado_at`) y su **fecha de recepción**. Como las
+  notas siempre son posteriores a la creación, el máximo captura el último
+  contacto real.
+- `diasSinActividad(item, últimaNotaISO, ahoraMs)` = días enteros transcurridos
+  desde esa actividad (`floor`); 0 si no hay fecha base.
+- **En riesgo / estancado** (`enRiesgo`) = la persona sigue en un estado de
+  **seguimiento** (`recibido` o `contactado`) **y** `diasSinActividad > 7`
+  (constante `DIAS_RIESGO = 7`). Los estados `en_proceso`, `integrado` y
+  `no_continua` nunca se marcan en riesgo.
+- El **umbral es estricto**: a los 7 días exactos todavía **no** está en riesgo;
+  a partir del día 8 sí.
+
+La **última nota por persona** se obtiene con una sola query agregada
+(`consolidacion_notas` ordenada por fecha desc, tomando la primera por id) al
+cargar el módulo — sin columnas nuevas ni SQL adicional. El **reloj se captura
+una vez al cargar** (`ahoraMs` en estado) para no llamar funciones impuras en el
+render.
+
+### UI de atención prioritaria
+
+- **Tag "⚠ En riesgo"** + borde/anillo rojo en la card Kanban de cada estancado.
+- **KPI "Requiere atención"** (se pinta rojo cuando hay casos).
+- **Filtro "Requiere atención"**: deja en el tablero solo los estancados.
+
+### Vista de Métricas (`metricasSalud`)
+
+Un switch **Tablero ↔ Métricas** en la cabecera muestra:
+
+- **Embudo de conversión:** conteo por etapa (Recibido → Integrado) y **% de
+  conversión** = `integrados / totalPipeline`, donde `totalPipeline` excluye los
+  descartados (`no_continua`).
+- **Tiempo promedio de integración (aprox.):** promedio de
+  `actualizado_at − creado_at` (en días) de los `integrado`.
+- **Carga por responsable:** visitantes **activos** (excluye integrados y
+  descartados) por líder, ordenado desc; *"Sin asignar"* destacado en ámbar.
+
+### Badge de alerta en el sidebar
+
+`AdminShell` muestra un **badge contador rojo** junto a *Consolidación* (y un
+punto rojo cuando el sidebar está colapsado) con el número de casos en riesgo.
+Para no penalizar la carga del shell, usa un **RPC escalar**
+`fn_consolidacion_riesgo()` (`SECURITY DEFINER`,
+`supabase/consolidacion-riesgo-rpc.sql`) que devuelve **un solo entero** calculado
+en la BD con la misma regla (`recibido`/`contactado` + `>7 días` sin actividad).
+Solo se consulta si el rol puede ver el módulo y **falla en silencio** (sin RPC o
+sin permiso, el badge simplemente no aparece).
+
+---
+
 ## Archivos del módulo
 
 | Tipo | Archivos |
 |---|---|
-| SQL | `supabase/consolidacion.sql`, `supabase/consolidacion-servidores-rpc.sql` |
+| SQL | `supabase/consolidacion.sql`, `supabase/consolidacion-servidores-rpc.sql`, `supabase/consolidacion-riesgo-rpc.sql` |
 | Server Actions | `app/(admin)/admin/_components/consolidacion-actions.ts` |
+| Lógica pura (métricas/riesgo) | `app/(admin)/admin/_components/consolidacion-metricas.ts` |
 | UI | `app/(admin)/admin/_components/ConsolidacionModule.tsx` |
 | Integración | `app/(admin)/admin/_components/AsistenciaModule.tsx` (botón "→ Consolidar"), `papelera-actions.ts` (allowlist) |
-| Navegación / RBAC | `app/(admin)/admin/_components/AdminShell.tsx`, `types.ts` |
-| Tests | `tests/unit/consolidacion-actions.test.ts` |
-| Compartidos | `mi_rol()`, `fn_audit_log_trigger()`, `fn_servidores()`, patrón `eliminado_at` |
+| Navegación / RBAC / Badge | `app/(admin)/admin/_components/AdminShell.tsx`, `types.ts` |
+| Tests | `tests/unit/consolidacion-actions.test.ts`, `tests/unit/consolidacion-metricas.test.ts` |
+| Compartidos | `mi_rol()`, `fn_audit_log_trigger()`, `fn_servidores()`, `fn_consolidacion_riesgo()`, patrón `eliminado_at` |
