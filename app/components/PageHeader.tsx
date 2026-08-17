@@ -36,20 +36,31 @@ export default function PageHeader({
   bgPublicId?: string;
 }) {
   const hasAside = Boolean(aside);
-  const bgUrl = bgPublicId ? cloudinaryUrl(bgPublicId) : "";
+  // Art direction: en móvil el hero es angosto y alto, así que entregamos un
+  // recorte VERTICAL con enfoque inteligente (g_auto mantiene rostros/sujeto);
+  // en desktop (≥1024px) dejamos la foto ancha como estaba. Así ninguna imagen
+  // de fondo se ve "cortada" en el celular.
+  const bgMovil = bgPublicId
+    ? cloudinaryUrl(bgPublicId, "", "c_fill,g_auto,ar_4:5,w_900,f_auto,q_auto")
+    : "";
+  const bgDesktop = bgPublicId
+    ? cloudinaryUrl(bgPublicId, "", "c_fill,g_auto,ar_16:9,w_1920,f_auto,q_auto")
+    : "";
 
   return (
     <header className="relative isolate overflow-hidden bg-linear-to-br from-blue-900 via-blue-800 to-sky-600 text-white">
-      {/* Imagen de fondo opcional (Cloudinary) + velo azul para legibilidad */}
-      {bgUrl && (
+      {/* Imagen de fondo opcional (Cloudinary) + velo para legibilidad */}
+      {bgMovil && (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={bgUrl}
-            alt=""
-            aria-hidden
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-          />
+          <picture>
+            <source media="(min-width: 1024px)" srcSet={bgDesktop} />
+            <img
+              src={bgMovil}
+              alt=""
+              aria-hidden
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
+            />
+          </picture>
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-black/60 via-black/40 to-black/20"

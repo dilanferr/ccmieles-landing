@@ -37,10 +37,14 @@ const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
  * @param publicId ej: "Obispo-Juan-Acosta-2"
  * @param carpeta  opcional, ej: "Mieles/logo" (déjalo vacío para esta cuenta)
  */
-export function cloudinaryUrl(publicId: string, carpeta = ""): string {
+export function cloudinaryUrl(
+  publicId: string,
+  carpeta = "",
+  transform = "f_auto,q_auto",
+): string {
   if (!CLOUDINARY_CLOUD) return "";
   const ruta = carpeta ? `${carpeta}/${publicId}` : publicId;
-  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/image/upload/f_auto,q_auto/${ruta}`;
+  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/image/upload/${transform}/${ruta}`;
 }
 
 export const IGLESIA = {
