@@ -62,6 +62,7 @@ export default async function GrupoDorcasPage() {
         descripcion="Inspiradas en el ejemplo de Dorcas, las hermanas sirven con amor a la iglesia y a los más necesitados a través de obras de misericordia."
         primaryCta={{ label: "Cómo llegar", href: s.mapsUrl, external: true }}
         secondaryCta={{ label: "Quiero servir", href: UNETE.cta.href }}
+        bgPublicId="Dorcas"
         aside={
           <div>
             <div className="flex items-center gap-4">
