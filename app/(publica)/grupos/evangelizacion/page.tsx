@@ -4,6 +4,7 @@ import MinisteriosNav from "@/app/components/MinisteriosNav";
 import SectionHeader from "@/app/components/SectionHeader";
 import EquipoGrid from "@/app/components/ministry/EquipoGrid";
 import CtaFinal from "@/app/components/ministry/CtaFinal";
+import FaqAccordion, { type Faq } from "@/app/components/ministry/FaqAccordion";
 import Reveal from "@/app/components/Reveal";
 import { getSettings } from "@/src/utils/settings";
 import { MegaphoneIcon, HeartIcon } from "@/app/components/icons";
@@ -55,6 +56,29 @@ const VERSICULOS = [
     cita: "Romanos 10:15",
     texto:
       "¿Y cómo predicarán si no fueren enviados? Como está escrito: ¡Cuán hermosos son los pies de los que anuncian la paz, de los que anuncian buenas nuevas!",
+  },
+];
+
+const FAQ: Faq[] = [
+  {
+    pregunta: "¿Dónde y cuándo predican en la calle?",
+    respuesta:
+      "Tenemos dos salidas fijas cada semana: los domingos a las 10:00 hrs en el frontis de nuestra iglesia, Centro Cristiano Mieles (San Luis 780); y los sábados a las 16:00 hrs junto al Consultorio Irene Frei de Cid, en Cabo 1° Carlos Cuevas Olmos 525, Quilicura, Región Metropolitana.",
+  },
+  {
+    pregunta: "¿Necesito experiencia para evangelizar?",
+    respuesta:
+      "No. Solo necesitas un corazón dispuesto. Salimos en equipo y siempre acompañamos a quienes recién comienzan; hay muchas formas de servir: conversar, orar, repartir folletos o apoyar en alabanza.",
+  },
+  {
+    pregunta: "¿Cómo puedo sumarme al equipo de evangelización?",
+    respuesta:
+      "Acércate a cualquiera de nuestras salidas de los sábados o domingos, o escríbenos desde la iglesia. Con gusto te recibimos y te integramos al equipo.",
+  },
+  {
+    pregunta: "¿Qué hacemos durante una salida?",
+    respuesta:
+      "Predicamos el evangelio, compartimos testimonios, oramos por las personas y las invitamos a la iglesia. Es un tiempo de adoración y servicio para llevar el amor de Cristo a nuestra ciudad.",
   },
 ];
 
@@ -196,6 +220,20 @@ export default async function EvangelizacionPage() {
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ============ PREGUNTAS FRECUENTES ============ */}
+      <section className="bg-white py-20 sm:py-24">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <Reveal>
+            <SectionHeader
+              eyebrow="Preguntas frecuentes"
+              titulo="Resolvemos tus dudas"
+              subtitulo="Lo que más consultan sobre nuestras salidas de evangelización."
+            />
+          </Reveal>
+          <FaqAccordion items={FAQ} />
         </div>
       </section>
 
