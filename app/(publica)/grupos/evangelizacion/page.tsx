@@ -75,6 +75,7 @@ export default async function EvangelizacionPage() {
           href: s.mapsUrl,
           external: true,
         }}
+        bgPublicId="evangelizacion"
         aside={
           <div>
             <div className="flex items-center gap-4">
