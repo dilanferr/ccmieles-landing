@@ -60,7 +60,11 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-100 bg-white shadow-sm">
-      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6 lg:px-8">
+        {/* Zona izquierda flexible SOLO en celular: equilibra las acciones de la
+            derecha para que el logo quede centrado, sin desbordar (las zonas se
+            encogen si hace falta). Desde sm el logo va a la izquierda. */}
+        <div className="flex-1 sm:hidden" aria-hidden />
         <Brand />
 
         {/* ---------- Navegación escritorio ---------- */}
@@ -175,7 +179,7 @@ export default function Navbar() {
         </ul>
 
         {/* ---------- Acciones ---------- */}
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-1 items-center justify-end gap-2 sm:flex-none">
           <div className="hidden sm:block">
             <FlowButton
               text="Petición de Oración"

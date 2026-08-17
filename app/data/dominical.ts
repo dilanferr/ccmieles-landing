@@ -24,8 +24,8 @@ export const HERO = {
   stats: [
     { icon: "heart", valor: "3-12", label: "Años de edad" },
     { icon: "calendar", valor: "Dom", label: "Cada domingo" },
-    { icon: "users", valor: "25+", label: "Niños cada semana" },
-    { icon: "book", valor: "+40", label: "Historias bíblicas" },
+    { icon: "users", valor: "5+", label: "Niños cada semana" },
+    { icon: "book", valor: "+20", label: "Historias bíblicas" },
   ] as HeroStat[],
 };
 
