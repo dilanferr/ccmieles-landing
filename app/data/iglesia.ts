@@ -69,6 +69,9 @@ export const IGLESIA = {
   // Dirección física del templo (edítala con la calle y comuna reales).
   direccion: "Ven y visítanos en nuestro Templo",
   mapsUrl: "https://maps.app.goo.gl/fWqRQmspHwUjXZ3A9",
+  // Número de WhatsApp para el botón flotante "Escríbenos" (ej. "+56 9 1234 5678").
+  // Déjalo vacío para ocultar el botón. Se sanea con normalizarTelefono (+56 CL).
+  whatsapp: "",
   redes: {
     facebook: "https://www.facebook.com/centrocristianomieles?locale=es_LA",
     tiktok: "https://www.tiktok.com/@ccmieles",

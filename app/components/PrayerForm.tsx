@@ -62,7 +62,11 @@ export default function PrayerForm() {
 
   if (estado === "ok") {
     return (
-      <div className="rounded-3xl border border-emerald-100 bg-emerald-50/60 p-10 text-center">
+      <div
+        role="status"
+        aria-live="polite"
+        className="rounded-3xl border border-emerald-100 bg-emerald-50/60 p-10 text-center"
+      >
         <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
           <CheckIcon className="h-8 w-8" />
         </div>
@@ -189,7 +193,10 @@ export default function PrayerForm() {
       </div>
 
       {estado === "error" && (
-        <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p
+          role="alert"
+          className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
           {errorMsg}
         </p>
       )}
