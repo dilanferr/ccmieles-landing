@@ -18,6 +18,19 @@ import {
   googleCal,
 } from "./eventoUtils";
 
+/**
+ * Inserta una transformación de Cloudinary justo después de `/image/upload/`.
+ * Permite adaptar la foto al hero (recorte inteligente por dispositivo). Si la
+ * URL no es de Cloudinary, la devuelve sin cambios (fallback seguro).
+ */
+function cldHero(url: string, transform: string): string {
+  const marca = "/image/upload/";
+  const i = url.indexOf(marca);
+  if (i === -1) return url;
+  const corte = i + marca.length;
+  return `${url.slice(0, corte)}${transform}/${url.slice(corte)}`;
+}
+
 function AddCal({ ev }: { ev: EventoPublico }) {
   return (
     <a
@@ -187,12 +200,20 @@ function HeroEvento({ ev, mapsUrl }: { ev: EventoPublico; mapsUrl: string }) {
     <header className="relative isolate overflow-hidden bg-linear-to-br from-blue-950 via-blue-900 to-blue-800 text-white">
       {ev.imagenUrl && (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={ev.imagenUrl}
-            alt={ev.nombre}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+          {/* Art direction: en móvil un recorte VERTICAL con enfoque inteligente
+              (g_auto mantiene al sujeto), en desktop uno ancho. Así la foto se
+              adapta al hero sin cortarse mal en el celular. */}
+          <picture>
+            <source
+              media="(min-width: 1024px)"
+              srcSet={cldHero(ev.imagenUrl, "c_fill,g_auto,ar_16:9,w_1920,f_auto,q_auto")}
+            />
+            <img
+              src={cldHero(ev.imagenUrl, "c_fill,g_auto,ar_4:5,w_900,f_auto,q_auto")}
+              alt={ev.nombre}
+              className="absolute inset-0 h-full w-full object-cover object-center"
+            />
+          </picture>
           {/* Velo oscuro NEUTRO (sin tinte azul) para legibilidad del texto. */}
           <div
             aria-hidden
