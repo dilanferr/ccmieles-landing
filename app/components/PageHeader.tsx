@@ -68,19 +68,25 @@ export default function PageHeader({
         </>
       )}
 
-      {/* Profundidad: realce radial + blobs suaves */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(255,255,255,0.10),transparent_45%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-sky-400/20 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl"
-      />
+      {/* Profundidad decorativa (realce radial + blobs azules): SOLO en los
+          hero de solo degradado. Con foto de fondo se omiten para no teñir de
+          azul la imagen; ahí basta el velo oscuro neutro de arriba. */}
+      {!bgMovil && (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(255,255,255,0.10),transparent_45%)]"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-sky-400/20 blur-3xl"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl"
+          />
+        </>
+      )}
 
       <div
         className={`relative mx-auto max-w-7xl px-6 py-20 lg:px-8 lg:py-24 ${

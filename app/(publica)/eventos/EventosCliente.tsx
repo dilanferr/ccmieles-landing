@@ -184,16 +184,22 @@ function HeroEvento({ ev, mapsUrl }: { ev: EventoPublico; mapsUrl: string }) {
   const comoLlegar = comoLlegarUrl(ev, mapsUrl);
   const target = fechaHoraISO(ev.fecha, ev.hora);
   return (
-    <header className="relative isolate overflow-hidden bg-blue-950 text-white">
+    <header className="relative isolate overflow-hidden bg-linear-to-br from-blue-950 via-blue-900 to-blue-800 text-white">
       {ev.imagenUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={ev.imagenUrl}
-          alt={ev.nombre}
-          className="absolute inset-0 h-full w-full object-cover opacity-40"
-        />
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={ev.imagenUrl}
+            alt={ev.nombre}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          {/* Velo oscuro NEUTRO (sin tinte azul) para legibilidad del texto. */}
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-linear-to-br from-black/70 via-black/50 to-black/30"
+          />
+        </>
       )}
-      <div className="absolute inset-0 bg-linear-to-br from-blue-950/95 via-blue-900/85 to-blue-950/70" />
       <div className="relative mx-auto max-w-7xl px-6 py-20 lg:px-8 lg:py-28">
         <div className="max-w-2xl">
           <div className="flex flex-wrap items-center gap-2">
