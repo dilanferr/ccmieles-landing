@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Protección ante "desfase de versiones" (version skew). Al publicar una
+  // versión nueva mientras alguien tiene el sitio abierto, si el cliente detecta
+  // un ID de despliegue distinto al del servidor, Next hace una RECARGA COMPLETA
+  // limpia en vez de fallar al pedir un archivo JS/CSS viejo (ChunkLoadError).
+  // En Vercel, VERCEL_GIT_COMMIT_SHA cambia en cada despliegue; en local queda
+  // sin definir y no afecta al desarrollo.
+  deploymentId: process.env.VERCEL_GIT_COMMIT_SHA,
+
   images: {
     // Formatos modernos: sirve AVIF (más liviano) con fallback a WebP.
     formats: ["image/avif", "image/webp"],

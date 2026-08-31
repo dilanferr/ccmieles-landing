@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { IGLESIA, LOGO_URL } from "@/app/data/iglesia";
@@ -8,6 +9,11 @@ import { IGLESIA, LOGO_URL } from "@/app/data/iglesia";
  * Error Boundary global con la identidad del Centro Cristiano Mieles. Se muestra
  * si una ruta lanza un error en tiempo de ejecución, en vez de la pantalla cruda
  * de Next. Ofrece reintentar (reset) y volver al inicio.
+ *
+ * Además AUTO-RECUPERA el caso más común: cuando se publica una versión nueva
+ * mientras alguien tenía el sitio abierto, el navegador pide un archivo JS de la
+ * versión vieja que ya no existe (ChunkLoadError). Detectamos ese error y
+ * recargamos una sola vez para bajar la versión nueva, sin molestar al visitante.
  */
 export default function Error({
   error,
@@ -16,6 +22,27 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    const msg = `${error?.name ?? ""} ${error?.message ?? ""}`;
+    const esDesfaseDeVersion =
+      /ChunkLoadError|Loading chunk [\w-]+ failed|Loading CSS chunk|Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/i.test(
+        msg,
+      );
+    if (!esDesfaseDeVersion) return;
+    try {
+      const KEY = "ccm.reload-chunk";
+      const ahora = Date.now();
+      const ultimo = Number(sessionStorage.getItem(KEY) ?? "0");
+      // Recarga UNA sola vez por sesión reciente (evita bucles si persiste).
+      if (ahora - ultimo > 12000) {
+        sessionStorage.setItem(KEY, String(ahora));
+        window.location.reload();
+      }
+    } catch {
+      window.location.reload();
+    }
+  }, [error]);
+
   return (
     <div className="relative grid min-h-screen place-items-center overflow-hidden bg-linear-to-br from-blue-950 via-blue-900 to-sky-800 px-4 py-10 text-center">
       <div
